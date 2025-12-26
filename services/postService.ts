@@ -21,26 +21,36 @@ export const postService = {
         return [];
       }
 
-      return posts.map(p => ({
-        id: p.id,
-        author: p.author_name,
-        authorId: p.author_id,
-        title: p.title,
-        content: p.content,
-        subject: p.subject,
-        likes: p.likes ? p.likes.map((l: any) => l.user_id) : [],
-        reports: p.reports ? p.reports.map((r: any) => r.user_id) : [],
-        comments: p.comments ? p.comments.map((c: any) => ({
-          id: c.id,
-          author: c.author_name,
-          authorId: c.author_id,
-          text: c.text,
-          timestamp: new Date(c.created_at).getTime()
-        })) : [],
-        timestamp: new Date(p.created_at).getTime(),
-        imageUrls: p.image_urls || (p.image_url ? [p.image_url] : []),
-        isPinned: p.is_pinned || false
-      }));
+      return posts.map(p => {
+        // آلية دمج ذكية للصور القديمة والجديدة
+        let finalImages: string[] = [];
+        if (p.image_urls && Array.isArray(p.image_urls) && p.image_urls.length > 0) {
+          finalImages = p.image_urls;
+        } else if (p.image_url) {
+          finalImages = [p.image_url];
+        }
+
+        return {
+          id: p.id,
+          author: p.author_name,
+          authorId: p.author_id,
+          title: p.title,
+          content: p.content,
+          subject: p.subject,
+          likes: p.likes ? p.likes.map((l: any) => l.user_id) : [],
+          reports: p.reports ? p.reports.map((r: any) => r.user_id) : [],
+          comments: p.comments ? p.comments.map((c: any) => ({
+            id: c.id,
+            author: c.author_name,
+            authorId: c.author_id,
+            text: c.text,
+            timestamp: new Date(c.created_at).getTime()
+          })) : [],
+          timestamp: new Date(p.created_at).getTime(),
+          imageUrls: finalImages,
+          isPinned: p.is_pinned || false
+        };
+      });
     } catch (err) {
       console.error("Catch error fetching posts:", err);
       return [];

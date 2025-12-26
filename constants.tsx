@@ -25,9 +25,10 @@ export const MOCK_POSTS = [
     content: 'يا شباب دي تجميعة لكل القوانين اللي ممكن تحتاجوها في الباب الأول، بالتوفيق يا وحوش!',
     subject: 'فيزياء',
     likes: [],
+    reports: [],
     comments: [],
     timestamp: Date.now() - 3600000,
-    imageUrl: 'https://picsum.photos/seed/physics/800/400'
+    imageUrls: ['https://picsum.photos/seed/physics/800/400']
   },
   {
     id: '2',
@@ -37,7 +38,9 @@ export const MOCK_POSTS = [
     content: 'الكيمياء العضوية مش صعبة، الفكرة كلها في الربط بين المعادلات.. ركزوا في المخطط ده.',
     subject: 'كيمياء',
     likes: [],
+    reports: [],
     comments: [],
     timestamp: Date.now() - 7200000,
+    imageUrls: []
   }
 ];
