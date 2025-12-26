@@ -24,6 +24,8 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
   
   const [grade, setGrade] = useState<Grade>('الأول الثانوي');
   const [description, setDescription] = useState('');
+  const [questionCount, setQuestionCount] = useState(7);
+  const [language, setLanguage] = useState<'ar' | 'en'>('ar');
 
   useEffect(() => {
     loadQuizzes();
@@ -86,7 +88,7 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
     if (!description.trim()) return;
     setView('loading');
     try {
-      const generated = await generateQuiz(grade, description);
+      const generated = await generateQuiz(grade, description, questionCount, language);
       const newQuiz: Omit<Quiz, 'id' | 'timestamp'> = {
         title: generated.title,
         description: description,
@@ -206,7 +208,7 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
                   <h5 className="font-black text-sm mb-2">
                     {selectedOption === q.correctAnswerIndex ? `✅ ${STRINGS.quiz.correct}` : `❌ ${STRINGS.quiz.wrong}`}
                   </h5>
-                  <p className="text-xs font-bold leading-relaxed">{q.explanation}</p>
+                  <LatexRenderer text={q.explanation} className="text-xs font-bold leading-relaxed" />
                 </div>
                 <button 
                   onClick={nextQuestion}
@@ -258,9 +260,9 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
 
       {view === 'create' && (
         <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-blue-50 mb-12 animate-in slide-in-from-top-4">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div>
-                <label className="block text-sm font-black text-slate-500 mb-3">{STRINGS.quiz.gradeLabel}</label>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="lg:col-span-1">
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.gradeLabel}</label>
                 <select 
                   className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
                   value={grade}
@@ -269,8 +271,33 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
                   {STRINGS.quiz.allGrades.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-black text-slate-500 mb-3">{STRINGS.quiz.descLabel}</label>
+
+              <div className="lg:col-span-1">
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.countLabel}</label>
+                <input 
+                  type="number"
+                  min="3"
+                  max="20"
+                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                />
+              </div>
+
+              <div className="lg:col-span-1">
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.langLabel}</label>
+                <select 
+                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as 'ar' | 'en')}
+                >
+                  <option value="ar">{STRINGS.quiz.langArabic}</option>
+                  <option value="en">{STRINGS.quiz.langEnglish}</option>
+                </select>
+              </div>
+
+              <div className="lg:col-span-1">
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.descLabel}</label>
                 <input 
                   className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
                   placeholder={STRINGS.quiz.descPlaceholder}

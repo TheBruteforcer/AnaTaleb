@@ -22,8 +22,26 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className }) => {
   }, [text]);
 
   return (
-    <div ref={containerRef} className={className}>
+    <div 
+      ref={containerRef} 
+      className={`latex-container ${className}`}
+      style={{ 
+        // حماية المعادلات من تأثير اتجاه الصفحة العام
+        unicodeBidi: 'embed',
+      }}
+    >
       {text}
+      <style>{`
+        .latex-container .katex {
+          direction: ltr !important;
+          display: inline-block;
+          unicode-bidi: isolate;
+        }
+        .latex-container .katex-display {
+          direction: ltr !important;
+          margin: 1em 0;
+        }
+      `}</style>
     </div>
   );
 };

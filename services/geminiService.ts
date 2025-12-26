@@ -5,15 +5,18 @@ import { Grade } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const generateQuiz = async (grade: Grade, description: string) => {
+export const generateQuiz = async (grade: Grade, description: string, questionCount: number = 7, language: 'ar' | 'en' = 'ar') => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `قم بإنشاء كويز تعليمي مكون من 7 أسئلة للمنهج المصري للمرحلة: ${grade}. \nالمحتوى المطلوب: ${description}.`,
+      contents: `قم بإنشاء كويز تعليمي مكون من ${questionCount} أسئلة للمنهج المصري للمرحلة: ${grade}. 
+      المحتوى المطلوب: ${description}.
+      لغة الكويز والأسئلة يجب أن تكون: ${language === 'ar' ? 'العربية (للمدارس العام)' : 'الإنجليزية (للمدارس اللغات/Language Schools)'}.`,
       config: {
         systemInstruction: `أنت معلم مصري خبير تضع امتحانات للطلاب. 
-        يجب أن تكون الأسئلة احترافية وتناسب المرحلة العمرية.
-        استخدم LaTeX لكتابة أي معادلات رياضية أو رموز كيميائية (مثال: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ أو $H_2O$).
+        يجب أن تكون الأسئلة احترافية وتناسب المرحلة العمرية واللغة المختارة.
+        استخدم LaTeX لكتابة أي معادلات رياضية أو رموز كيميائية دائماً وبين علامات دولار (مثال: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ أو $H_2O$).
+        في حالة اللغة العربية، اكتب التفسير بالعامية المصرية. في حالة اللغة الإنجليزية، اكتب التفسير بلغة إنجليزية مبسطة وودودة.
         يجب أن يكون الرد بصيغة JSON حصراً.`,
         responseMimeType: "application/json",
         responseSchema: {
@@ -28,7 +31,7 @@ export const generateQuiz = async (grade: Grade, description: string) => {
                   text: { type: Type.STRING, description: "نص السؤال مع LaTeX إذا لزم" },
                   options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "4 اختيارات" },
                   correctAnswerIndex: { type: Type.INTEGER },
-                  explanation: { type: Type.STRING, description: "تفسير بسيط للإجابة بالعامية المصرية" }
+                  explanation: { type: Type.STRING, description: "تفسير بسيط للإجابة" }
                 },
                 required: ["text", "options", "correctAnswerIndex", "explanation"]
               }
@@ -54,6 +57,7 @@ export const generateQuizFromContent = async (title: string, content: string) =>
       config: {
         systemInstruction: `أنت مساعد تعليمي ذكي. هدفك هو اختبار فهم الطالب للمحتوى المقدم له. 
         تأكد أن الأسئلة مستوحاة مباشرة من المعلومات الموجودة في الملخص.
+        استخدم LaTeX للمعادلات.
         يجب أن يكون الرد بصيغة JSON.`,
         responseMimeType: "application/json",
         responseSchema: {
