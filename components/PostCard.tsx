@@ -128,7 +128,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
               </div>
               <span className="text-[8px] text-slate-400 font-bold uppercase">{post.subject}</span>
             </div>
-            <img src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}&backgroundColor=b6e3f4`} className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 shadow-sm" alt="avatar" />
+            <img 
+              src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}&backgroundColor=b6e3f4`} 
+              className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 shadow-sm" 
+              alt="avatar" 
+              loading="lazy"
+            />
           </div>
         </div>
 
@@ -150,8 +155,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
         {post.imageUrls && post.imageUrls.length > 0 && (
           <div className={`grid gap-2 mb-4 ${post.imageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
             {post.imageUrls.slice(0, 4).map((url, idx) => (
-              <div key={idx} className="relative rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-inner group-hover:shadow-md transition-shadow aspect-video">
-                <img src={url} className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" alt="attachment" onClick={handleImageClick} />
+              <div key={idx} className="relative rounded-xl overflow-hidden bg-slate-100 border border-slate-50 shadow-inner group-hover:shadow-md transition-shadow aspect-video">
+                <img 
+                  src={url} 
+                  className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" 
+                  alt="attachment" 
+                  loading="lazy"
+                  onLoad={(e) => (e.currentTarget.parentElement!.style.backgroundColor = 'transparent')}
+                  onClick={handleImageClick} 
+                />
                 {idx === 3 && post.imageUrls!.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-black text-sm pointer-events-none">
                     +{post.imageUrls!.length - 4} صور أخرى

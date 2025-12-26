@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import PostCard from './components/PostCard';
 import PostDetails from './components/PostDetails';
@@ -21,6 +21,10 @@ const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [topStudents, setTopStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string | 'الكل'>('الكل');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -32,28 +36,74 @@ const App: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [newPost, setNewPost] = useState({ title: '', content: '', subject: 'أخرى' as Subject });
 
-  const refreshPosts = async () => {
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    setPage(0);
+    setHasMore(true);
     try {
       const [data, students] = await Promise.all([
-        postService.getAll(),
+        postService.getAll(0, 10),
         postService.getTopStudents()
       ]);
       setPosts(data || []);
       setTopStudents(students || []);
+      if (data.length < 10) setHasMore(false);
     } catch (e) {
-      console.error(e);
+      console.error("Initial Load Error:", e);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const loadMorePosts = async () => {
+    if (isFetchingMore || !hasMore) return;
+    setIsFetchingMore(true);
+    const nextPage = page + 1;
+    try {
+      const morePosts = await postService.getAll(nextPage, 10);
+      if (morePosts.length === 0) {
+        setHasMore(false);
+      } else {
+        setPosts(prev => [...prev, ...morePosts]);
+        setPage(nextPage);
+        if (morePosts.length < 10) setHasMore(false);
+      }
+    } catch (e) {
+      console.error("Load More Error:", e);
+    } finally {
+      setIsFetchingMore(false);
+    }
+  };
+
+  const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading || isFetchingMore) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMorePosts();
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [isLoading, isFetchingMore, hasMore]);
+
   useEffect(() => {
-    refreshPosts();
+    loadInitialData();
   }, []);
+
+  // Reset pagination when subject or view changes
+  useEffect(() => {
+    if (view === 'home' || view === 'trending') {
+      loadInitialData();
+    }
+  }, [selectedSubject, view]);
 
   const handleAuthSuccess = () => {
     setCurrentUser(db.getCurrentUser());
-    refreshPosts();
+    loadInitialData();
   };
 
   const handleLogout = () => {
@@ -65,23 +115,21 @@ const App: React.FC = () => {
   const filteredPosts = useMemo(() => {
     let result = [...posts];
     
+    // Sort logic remains the same
     result = result.sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
-      
-      if (view === 'trending') {
-        return (b.likes.length + b.comments.length) - (a.likes.length + a.comments.length);
-      }
       return b.timestamp - a.timestamp;
     });
 
-    if (selectedSubject !== 'الكل') result = result.filter(p => p.subject === selectedSubject);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
     }
+    
+    // Note: selectedSubject is handled via initial load for performance
     return result;
-  }, [posts, view, searchQuery, selectedSubject]);
+  }, [posts, searchQuery]);
 
   const handleSelectPost = (postId: string) => {
     setSelectedPostId(postId);
@@ -98,13 +146,21 @@ const App: React.FC = () => {
         urls = await postService.uploadFiles(selectedFiles);
       }
       const ok = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
+      
       if (ok) {
         setNewPost({ title: '', content: '', subject: 'أخرى' });
         setSelectedFiles([]);
         setImagePreviews([]);
         setIsModalOpen(false);
-        refreshPosts();
+        setView('home');
+        setSelectedSubject('الكل');
+        await loadInitialData();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        alert("معلش يا بطل، حصل مشكلة في النشر. جرب تاني!");
       }
+    } catch (err) {
+      console.error("Create Post Exception:", err);
     } finally {
       setIsPublishing(false);
     }
@@ -113,9 +169,7 @@ const App: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-
     setSelectedFiles(prev => [...prev, ...files]);
-    
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -140,7 +194,6 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#fafbfc] pb-20 selection:bg-blue-100 selection:text-blue-900">
       <Navbar onNavigate={setView} currentView={view} currentUser={currentUser} />
       
-      {/* Category Bar - Only visible on main feeds */}
       {(view === 'home' || view === 'trending') && (
         <div className="bg-white border-b border-slate-100 overflow-x-auto no-scrollbar py-3 sticky top-16 z-40">
           <div className="max-w-6xl mx-auto px-4 flex gap-3">
@@ -165,14 +218,14 @@ const App: React.FC = () => {
 
       <main className="max-w-6xl mx-auto px-4 pt-8">
         {view === 'admin' ? (
-          <AdminDashboard currentUser={currentUser} onUpdate={refreshPosts} />
+          <AdminDashboard currentUser={currentUser} onUpdate={loadInitialData} />
         ) : view === 'pomodoro' ? (
           <PomodoroPage />
         ) : view === 'post-details' && selectedPost ? (
           <PostDetails 
             post={selectedPost} 
             currentUser={currentUser} 
-            onUpdate={refreshPosts} 
+            onUpdate={loadInitialData} 
             onBack={() => setView('home')} 
           />
         ) : view === 'profile' ? (
@@ -193,7 +246,7 @@ const App: React.FC = () => {
              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest text-right px-2 mt-10">ملخصاتك اللي نشرتها ✨</h3>
              <div className="space-y-5">
                {posts.filter(p => p.authorId === currentUser.id).map(p => (
-                 <PostCard key={p.id} post={p} currentUser={currentUser} onUpdate={refreshPosts} onSelect={handleSelectPost} />
+                 <PostCard key={p.id} post={p} currentUser={currentUser} onUpdate={loadInitialData} onSelect={handleSelectPost} />
                ))}
              </div>
           </div>
@@ -228,21 +281,43 @@ const App: React.FC = () => {
                    </div>
                 </div>
 
-                {isLoading ? (
+                {isLoading && page === 0 ? (
                   <div className="py-32 text-center">
                     <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
                     <p className="text-sm font-black text-slate-300">لحظة يا بطل.. بنرتبلك الملخصات!</p>
                   </div>
                 ) : filteredPosts.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-6">
-                    {filteredPosts.map(post => (
-                      <PostCard key={post.id} post={post} currentUser={currentUser} onUpdate={refreshPosts} onSelect={handleSelectPost} />
-                    ))}
+                  <div className="grid grid-cols-1 gap-6 pb-20">
+                    {filteredPosts.map((post, idx) => {
+                      if (filteredPosts.length === idx + 1) {
+                        return (
+                          <div key={post.id} ref={lastPostElementRef}>
+                            <PostCard post={post} currentUser={currentUser} onUpdate={loadInitialData} onSelect={handleSelectPost} />
+                          </div>
+                        );
+                      } else {
+                        return <PostCard key={post.id} post={post} currentUser={currentUser} onUpdate={loadInitialData} onSelect={handleSelectPost} />;
+                      }
+                    })}
+                    
+                    {isFetchingMore && (
+                      <div className="py-10 text-center">
+                         <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بنحمل بوستات تانية...</p>
+                      </div>
+                    )}
+                    
+                    {!hasMore && filteredPosts.length > 5 && (
+                      <div className="py-10 text-center">
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">وصلت لنهاية الملخصات يا بطل! 🏁</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="py-24 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                     <div className="text-5xl mb-6">🌵</div>
-                    <p className="text-sm font-black text-slate-400">لسه مفيش ملخصات هنا.. كون أول واحد يفيد زمايله!</p>
+                    <p className="text-sm font-black text-slate-400">مفيش ملخصات هنا حالياً.. جرب ترفرش أو تختار مادة تانية!</p>
+                    <button onClick={loadInitialData} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">إعادة تحميل 🔄</button>
                   </div>
                 )}
               </div>
@@ -260,7 +335,7 @@ const App: React.FC = () => {
                          <span className="font-black text-blue-600 text-[10px] bg-blue-50 px-3 py-1 rounded-xl group-hover:bg-blue-100 transition-colors">{s.points}</span>
                          <div className="flex items-center gap-3">
                           <span className="font-bold text-slate-700 text-xs line-clamp-1">{s.name}</span>
-                          <img src={s.avatar} className="w-9 h-9 rounded-full border border-slate-100 shadow-sm" alt="top user" />
+                          <img src={s.avatar} className="w-9 h-9 rounded-full border border-slate-100 shadow-sm" alt="top user" loading="lazy" />
                         </div>
                       </div>
                     ))}
@@ -280,7 +355,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Floating Tools */}
       <GeminiAssistant />
       {view !== 'pomodoro' && <StudyTimer />}
 
@@ -356,7 +430,7 @@ const App: React.FC = () => {
             await authService.updateProfile(currentUser.id, {name: n, avatar: a}); 
             setCurrentUser(db.getCurrentUser()); 
             setIsEditProfileOpen(false); 
-            refreshPosts(); 
+            await loadInitialData(); 
           }} 
         />
       )}

@@ -95,6 +95,7 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
                src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`} 
                className="w-14 h-14 rounded-full border-4 border-slate-50 shadow-md" 
                alt="author" 
+               loading="lazy"
              />
           </div>
 
@@ -140,8 +141,14 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">الصور المرفقة ({post.imageUrls.length})</h4>
               <div className="grid grid-cols-1 gap-4">
                 {post.imageUrls.map((url, idx) => (
-                  <div key={idx} className="rounded-[2rem] overflow-hidden border border-slate-100 bg-slate-50 shadow-inner group">
-                    <img src={url} className="w-full h-auto object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-500" alt="attachment" onClick={() => window.open(url, '_blank')} />
+                  <div key={idx} className="rounded-[2rem] overflow-hidden border border-slate-100 bg-slate-50 shadow-inner group min-h-[200px]">
+                    <img 
+                      src={url} 
+                      className="w-full h-auto object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-500" 
+                      alt="attachment" 
+                      loading="lazy"
+                      onClick={() => window.open(url, '_blank')} 
+                    />
                   </div>
                 ))}
               </div>

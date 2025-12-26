@@ -3,8 +3,11 @@ import { supabase } from '../lib/supabase';
 import { Post, Comment, Subject } from '../types';
 
 export const postService = {
-  getAll: async (): Promise<Post[]> => {
+  getAll: async (page: number = 0, limit: number = 10): Promise<Post[]> => {
     try {
+      const from = page * limit;
+      const to = from + limit - 1;
+
       const { data: posts, error } = await supabase
         .from('posts')
         .select(`
@@ -14,7 +17,8 @@ export const postService = {
           comments (*)
         `)
         .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) {
         console.error("Supabase error fetching posts:", error);
@@ -22,7 +26,6 @@ export const postService = {
       }
 
       return posts.map(p => {
-        // آلية دمج ذكية للصور القديمة والجديدة
         let finalImages: string[] = [];
         if (p.image_urls && Array.isArray(p.image_urls) && p.image_urls.length > 0) {
           finalImages = p.image_urls;
