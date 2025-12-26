@@ -25,8 +25,8 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [newPost, setNewPost] = useState({ title: '', content: '', subject: 'أخرى' as Subject });
 
   const refreshPosts = async () => {
@@ -84,19 +84,41 @@ const App: React.FC = () => {
     if (!newPost.title || !newPost.content || !currentUser) return;
     setIsPublishing(true);
     try {
-      let url = '';
-      if (selectedFile) url = await postService.uploadFile(selectedFile) || '';
-      const ok = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, url);
+      let urls: string[] = [];
+      if (selectedFiles.length > 0) {
+        urls = await postService.uploadFiles(selectedFiles);
+      }
+      const ok = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
       if (ok) {
         setNewPost({ title: '', content: '', subject: 'أخرى' });
-        setSelectedFile(null);
-        setImagePreview(null);
+        setSelectedFiles([]);
+        setImagePreviews([]);
         setIsModalOpen(false);
         refreshPosts();
       }
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setSelectedFiles(prev => [...prev, ...files]);
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   if (!currentUser) return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
@@ -233,8 +255,8 @@ const App: React.FC = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
               <h3 className="text-sm font-black text-slate-800">إضافة ملخص جديد 📖</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 font-black px-2 transition-colors">✕</button>
             </div>
@@ -254,12 +276,9 @@ const App: React.FC = () => {
                     >
                       {SUBJECTS_WITH_ICONS.map(s => <option key={s.name} value={s.name}>{s.icon} {s.name}</option>)}
                     </select>
-                    <label className="bg-blue-50 border border-dashed border-blue-200 rounded-2xl flex items-center justify-center text-[10px] font-black text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors">
-                      <span>{selectedFile ? '✅ تم الرفع' : '📷 أضف صورة'}</span>
-                      <input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) { setSelectedFile(f); const r = new FileReader(); r.onloadend = () => setImagePreview(r.result as string); r.readAsDataURL(f); }
-                      }} />
+                    <label className="bg-blue-50 border border-dashed border-blue-200 rounded-2xl flex items-center justify-center text-[10px] font-black text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors h-[46px]">
+                      <span>{selectedFiles.length > 0 ? `✅ (${selectedFiles.length}) صور` : '📷 أضف صور'}</span>
+                      <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                     </label>
                 </div>
                 <textarea 
@@ -269,12 +288,23 @@ const App: React.FC = () => {
                   value={newPost.content} 
                   onChange={(e) => setNewPost({...newPost, content: e.target.value})} 
                 />
-                {imagePreview && (
-                  <div className="relative group">
-                    <img src={imagePreview} className="w-full h-32 object-cover rounded-2xl shadow-sm border border-slate-100" alt="preview" />
-                    <button onClick={() => {setSelectedFile(null); setImagePreview(null);}} className="absolute top-2 right-2 bg-rose-500 text-white w-6 h-6 rounded-full text-xs shadow-lg">✕</button>
+                
+                {imagePreviews.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar">
+                    {imagePreviews.map((src, idx) => (
+                      <div key={idx} className="relative shrink-0">
+                        <img src={src} className="w-20 h-20 object-cover rounded-xl border border-slate-100 shadow-sm" alt="preview" />
+                        <button 
+                          onClick={() => removeFile(idx)} 
+                          className="absolute -top-1 -right-1 bg-rose-500 text-white w-5 h-5 rounded-full text-[10px] shadow-lg flex items-center justify-center border-2 border-white"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
+
               <button 
                 onClick={handleCreatePost} 
                 disabled={isPublishing || !newPost.title || !newPost.content} 

@@ -20,7 +20,7 @@ export interface Post {
   reports: string[];
   comments: Comment[];
   timestamp: number;
-  imageUrl?: string;
+  imageUrls?: string[]; // تحديث لدعم مصفوفة صور
   isPinned?: boolean;
 }
 

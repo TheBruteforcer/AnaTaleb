@@ -34,7 +34,7 @@ export const postService = {
           timestamp: new Date(c.created_at).getTime()
         })) : [],
         timestamp: new Date(p.created_at).getTime(),
-        imageUrl: p.image_url,
+        imageUrls: p.image_urls || (p.image_url ? [p.image_url] : []), // دعم القديم والجديد
         isPinned: p.is_pinned || false
       }));
     } catch (err) {
@@ -42,23 +42,31 @@ export const postService = {
     }
   },
 
-  uploadFile: async (file: File): Promise<string | null> => {
-    try {
+  uploadFiles: async (files: File[]): Promise<string[]> => {
+    const uploadPromises = files.map(async (file) => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const { error } = await supabase.storage.from('attachments').upload(fileName, file);
       if (error) return null;
       const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(fileName);
       return publicUrl;
-    } catch (err) {
-      return null;
-    }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    return results.filter((url): url is string => url !== null);
   },
 
-  create: async (title: string, content: string, subject: Subject, author: {name: string, id: string}, imageUrl?: string): Promise<boolean> => {
+  create: async (title: string, content: string, subject: Subject, author: {name: string, id: string}, imageUrls: string[] = []): Promise<boolean> => {
     const { error } = await supabase.from('posts').insert([{
-      title, content, subject, author_name: author.name, author_id: author.id, image_url: imageUrl || null
+      title, 
+      content, 
+      subject, 
+      author_name: author.name, 
+      author_id: author.id, 
+      image_urls: imageUrls,
+      image_url: imageUrls[0] || null // للمطابقة مع الأعمدة القديمة إن وجدت
     }]);
+    
     if (!error) {
       await supabase.rpc('increment_points', { user_id: author.id, amount: 5 }).catch(() => {});
       return true;

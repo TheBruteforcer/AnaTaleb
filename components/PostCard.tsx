@@ -127,9 +127,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
           </div>
         )}
 
-        {post.imageUrl && (
-          <div className="rounded-xl overflow-hidden mb-4 bg-slate-50 flex justify-center border border-slate-100 shadow-inner group-hover:shadow-md transition-shadow">
-            <img src={post.imageUrl} className="max-w-full h-auto max-h-[300px] object-contain" alt="post attachment" />
+        {post.imageUrls && post.imageUrls.length > 0 && (
+          <div className={`grid gap-2 mb-4 ${post.imageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {post.imageUrls.map((url, idx) => (
+              <div key={idx} className="rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-inner group-hover:shadow-md transition-shadow aspect-video">
+                <img src={url} className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" alt="attachment" onClick={() => window.open(url, '_blank')} />
+              </div>
+            ))}
           </div>
         )}
 
