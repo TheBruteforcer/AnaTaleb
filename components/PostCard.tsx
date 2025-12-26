@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Post, User } from '../types';
 import CommentSection from './CommentSection';
 import { postService } from '../services/postService';
@@ -18,16 +18,35 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
   
-  const isLiked = post.likes?.includes(currentUser.id) || false;
+  // Optimistic Likes State
+  const [localLikes, setLocalLikes] = useState<string[]>(post.likes || []);
+  const isLiked = localLikes.includes(currentUser.id);
   const isReported = post.reports?.includes(currentUser.id) || false;
+
+  useEffect(() => {
+    setLocalLikes(post.likes || []);
+  }, [post.likes]);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isBusy) return;
+
+    // Optimistic Update
+    const newLikes = isLiked 
+      ? localLikes.filter(id => id !== currentUser.id) 
+      : [...localLikes, currentUser.id];
+    
+    setLocalLikes(newLikes);
     setIsBusy(true);
+
     try {
       await postService.toggleLike(post.id, currentUser.id);
-      onUpdate();
+      // We don't call onUpdate() here to prevent immediate re-render jump, 
+      // the local state handles the UI.
+    } catch (err) {
+      // Revert on failure
+      setLocalLikes(post.likes);
+      console.error("Like failed:", err);
     } finally {
       setIsBusy(false);
     }
@@ -190,8 +209,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
               <span>{post.comments?.length || 0}</span>
               <span className="text-sm">💬</span>
             </button>
-            <button onClick={handleLike} disabled={isBusy} className={`flex items-center gap-1.5 text-[10px] font-black transition-all transform active:scale-150 ${isLiked ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}`}>
-              <span>{post.likes?.length || 0}</span>
+            <button onClick={handleLike} className={`flex items-center gap-1.5 text-[10px] font-black transition-all transform active:scale-150 ${isLiked ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}`}>
+              <span>{localLikes.length}</span>
               <span className="text-sm">{isLiked ? '❤️' : '🤍'}</span>
             </button>
           </div>

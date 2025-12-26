@@ -62,15 +62,28 @@ export const postService = {
 
   uploadFiles: async (files: File[]): Promise<string[]> => {
     const uploadPromises = files.map(async (file) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const { error } = await supabase.storage.from('attachments').upload(fileName, file);
-      if (error) {
-        console.error("Upload error:", error);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        
+        const { error } = await supabase.storage
+          .from('attachments')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error("Upload error detail:", error);
+          return null;
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(fileName);
+        return publicUrl;
+      } catch (e) {
+        console.error("Exception during upload:", e);
         return null;
       }
-      const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(fileName);
-      return publicUrl;
     });
 
     const results = await Promise.all(uploadPromises);
@@ -101,7 +114,13 @@ export const postService = {
   },
 
   toggleLike: async (postId: string, userId: string) => {
-    const { data: existing } = await supabase.from('likes').select('*').eq('post_id', postId).eq('user_id', userId).single();
+    const { data: existing } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
     if (existing) {
       await supabase.from('likes').delete().eq('id', existing.id);
     } else {
@@ -114,7 +133,7 @@ export const postService = {
   },
 
   reportPost: async (postId: string, userId: string): Promise<boolean> => {
-    const { data: existing } = await supabase.from('reports').select('*').eq('post_id', postId).eq('user_id', userId).single();
+    const { data: existing } = await supabase.from('reports').select('*').eq('post_id', postId).eq('user_id', userId).maybeSingle();
     if (existing) {
       await supabase.from('reports').delete().eq('id', existing.id);
       return false;

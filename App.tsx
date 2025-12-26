@@ -94,7 +94,6 @@ const App: React.FC = () => {
     loadInitialData();
   }, []);
 
-  // Reset pagination when subject or view changes
   useEffect(() => {
     if (view === 'home' || view === 'trending') {
       loadInitialData();
@@ -114,22 +113,15 @@ const App: React.FC = () => {
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
-    
-    // Sort logic remains the same
-    result = result.sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return b.timestamp - a.timestamp;
-    });
-
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
     }
-    
-    // Note: selectedSubject is handled via initial load for performance
+    if (selectedSubject !== 'الكل') {
+      result = result.filter(p => p.subject === selectedSubject);
+    }
     return result;
-  }, [posts, searchQuery]);
+  }, [posts, searchQuery, selectedSubject]);
 
   const handleSelectPost = (postId: string) => {
     setSelectedPostId(postId);
@@ -144,6 +136,9 @@ const App: React.FC = () => {
       let urls: string[] = [];
       if (selectedFiles.length > 0) {
         urls = await postService.uploadFiles(selectedFiles);
+        if (urls.length < selectedFiles.length) {
+          alert("بعض الصور فشل رفعها، اتأكد من النت وجرب تاني.");
+        }
       }
       const ok = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
       
@@ -316,7 +311,7 @@ const App: React.FC = () => {
                 ) : (
                   <div className="py-24 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                     <div className="text-5xl mb-6">🌵</div>
-                    <p className="text-sm font-black text-slate-400">مفيش ملخصات هنا حالياً.. جرب ترفرش أو تختار مادة تانية!</p>
+                    <p className="text-sm font-black text-slate-400">مفيش ملخصات هنا حالياً..</p>
                     <button onClick={loadInitialData} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">إعادة تحميل 🔄</button>
                   </div>
                 )}
@@ -345,7 +340,7 @@ const App: React.FC = () => {
                 <div onClick={() => setView('pomodoro')} className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] p-7 text-white shadow-2xl shadow-blue-100 relative overflow-hidden cursor-pointer group hover:scale-[1.02] transition-transform">
                    <div className="relative z-10">
                      <h4 className="font-black text-base mb-3 group-hover:translate-x-1 transition-transform">افتح البومودورو! ⏱️</h4>
-                     <p className="text-xs font-medium text-blue-100 leading-relaxed mb-6">ذاكر بتركيز وخد راحة صح. ادخل الصفحة وشغل العداد دلوقتي.</p>
+                     <p className="text-xs font-medium text-blue-100 leading-relaxed mb-6">ذاكر بتركيز وخد راحة صح.</p>
                    </div>
                    <div className="absolute -right-4 -bottom-4 text-7xl opacity-20 rotate-12 transition-transform group-hover:rotate-45">🧠</div>
                 </div>
@@ -368,7 +363,7 @@ const App: React.FC = () => {
             <div className="p-8 space-y-5 text-right">
                 <input 
                   type="text" 
-                  placeholder="عنوان الدرس.. (مثلاً: قوانين الحركة)" 
+                  placeholder="عنوان الدرس.." 
                   className="w-full bg-slate-50 rounded-2xl px-5 py-4 text-sm font-bold outline-none border border-slate-100 text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all" 
                   value={newPost.title} 
                   onChange={(e) => setNewPost({...newPost, title: e.target.value})} 
@@ -387,7 +382,7 @@ const App: React.FC = () => {
                     </label>
                 </div>
                 <textarea 
-                  placeholder="اكتب أهم النقاط في الدرس هنا.. زمايلك هيشكروك! ❤️" 
+                  placeholder="اكتب أهم النقاط في الدرس هنا.." 
                   rows={5} 
                   className="w-full bg-slate-50 rounded-2xl px-5 py-4 text-sm font-bold outline-none border border-slate-100 resize-none text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all" 
                   value={newPost.content} 
