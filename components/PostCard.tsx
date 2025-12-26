@@ -17,15 +17,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
   
-  const isLiked = post.likes.includes(currentUser.id);
-  const isReported = post.reports.includes(currentUser.id);
+  const isLiked = post.likes?.includes(currentUser.id) || false;
+  const isReported = post.reports?.includes(currentUser.id) || false;
 
   const handleLike = async () => {
     if (isBusy) return;
     setIsBusy(true);
-    await postService.toggleLike(post.id, currentUser.id);
-    onUpdate();
-    setIsBusy(false);
+    try {
+      await postService.toggleLike(post.id, currentUser.id);
+      onUpdate();
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   const handleAIExplain = async () => {
@@ -34,9 +37,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
       return;
     }
     setIsExplaining(true);
-    const explanation = await explainPostContent(post.title, post.content);
-    setAiExplanation(explanation);
-    setIsExplaining(false);
+    try {
+      const explanation = await explainPostContent(post.title, post.content);
+      setAiExplanation(explanation);
+    } finally {
+      setIsExplaining(false);
+    }
   };
 
   const handlePin = async () => {
@@ -150,11 +156,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
               <span className="hidden sm:inline">{aiExplanation ? 'إخفاء الشرح' : 'اشرح لي'}</span>
             </button>
             <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-[10px] font-black transition-colors ${showComments ? 'text-blue-600' : 'text-slate-300 hover:text-blue-400'}`}>
-              <span>{post.comments.length}</span>
+              <span>{post.comments?.length || 0}</span>
               <span className="text-sm">💬</span>
             </button>
             <button onClick={handleLike} disabled={isBusy} className={`flex items-center gap-1.5 text-[10px] font-black transition-all transform active:scale-150 ${isLiked ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}`}>
-              <span>{post.likes.length}</span>
+              <span>{post.likes?.length || 0}</span>
               <span className="text-sm">{isLiked ? '❤️' : '🤍'}</span>
             </button>
           </div>
@@ -162,7 +168,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
 
         {showComments && (
           <div className="mt-4 pt-4 border-t border-slate-50 animate-in slide-in-from-top-4 duration-300">
-            <CommentSection comments={post.comments} onAddComment={async (txt) => { await postService.addComment(post.id, txt, {name: currentUser.name, id: currentUser.id}); onUpdate(); }} currentUser={currentUser} />
+            <CommentSection comments={post.comments || []} onAddComment={async (txt) => { await postService.addComment(post.id, txt, {name: currentUser.name, id: currentUser.id}); onUpdate(); }} currentUser={currentUser} />
           </div>
         )}
       </div>

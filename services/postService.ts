@@ -13,9 +13,13 @@ export const postService = {
           reports (user_id),
           comments (*)
         `)
+        .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) return [];
+      if (error) {
+        console.error("Supabase error fetching posts:", error);
+        return [];
+      }
 
       return posts.map(p => ({
         id: p.id,
@@ -34,10 +38,11 @@ export const postService = {
           timestamp: new Date(c.created_at).getTime()
         })) : [],
         timestamp: new Date(p.created_at).getTime(),
-        imageUrls: p.image_urls || (p.image_url ? [p.image_url] : []), // دعم القديم والجديد
+        imageUrls: p.image_urls || (p.image_url ? [p.image_url] : []),
         isPinned: p.is_pinned || false
       }));
     } catch (err) {
+      console.error("Catch error fetching posts:", err);
       return [];
     }
   },
@@ -47,7 +52,10 @@ export const postService = {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const { error } = await supabase.storage.from('attachments').upload(fileName, file);
-      if (error) return null;
+      if (error) {
+        console.error("Upload error:", error);
+        return null;
+      }
       const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(fileName);
       return publicUrl;
     });
@@ -57,21 +65,26 @@ export const postService = {
   },
 
   create: async (title: string, content: string, subject: Subject, author: {name: string, id: string}, imageUrls: string[] = []): Promise<boolean> => {
-    const { error } = await supabase.from('posts').insert([{
-      title, 
-      content, 
-      subject, 
-      author_name: author.name, 
-      author_id: author.id, 
-      image_urls: imageUrls,
-      image_url: imageUrls[0] || null // للمطابقة مع الأعمدة القديمة إن وجدت
-    }]);
-    
-    if (!error) {
-      await supabase.rpc('increment_points', { user_id: author.id, amount: 5 }).catch(() => {});
-      return true;
+    try {
+      const { error } = await supabase.from('posts').insert([{
+        title, 
+        content, 
+        subject, 
+        author_name: author.name, 
+        author_id: author.id, 
+        image_urls: imageUrls,
+        image_url: imageUrls[0] || null
+      }]);
+      
+      if (!error) {
+        await supabase.rpc('increment_points', { user_id: author.id, amount: 5 }).catch(e => console.error("Points error:", e));
+        return true;
+      }
+      console.error("Create post error:", error);
+      return false;
+    } catch (err) {
+      return false;
     }
-    return false;
   },
 
   toggleLike: async (postId: string, userId: string) => {
