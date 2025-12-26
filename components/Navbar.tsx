@@ -10,45 +10,48 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, currentUser }) => {
   return (
-    <nav className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
+    <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-            <div className="bg-blue-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-blue-200 transition-transform active:scale-90">أ</div>
-            <span className="text-xl font-black text-slate-800 tracking-tight hidden sm:block">أنا طالب</span>
+        <div className="flex justify-between items-center h-20">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => onNavigate('home')}>
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-blue-200 transition-transform group-active:scale-90">أ</div>
+            <div className="flex flex-col">
+              <span className="text-xl font-black text-slate-800 tracking-tight hidden sm:block leading-none">أنا طالب</span>
+              <span className="text-[9px] font-bold text-blue-500 hidden sm:block uppercase tracking-widest mt-1">Ana Taleb Platform</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-6">
             <button 
               onClick={() => onNavigate('home')}
-              className={`text-xs font-black transition-all ${currentView === 'home' ? 'text-blue-600 border-b-2 border-blue-600 pb-1' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentView === 'home' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
             >
               الرئيسية
             </button>
             <button 
-              onClick={() => onNavigate('pomodoro')}
-              className={`text-xs font-black transition-all flex items-center gap-1.5 ${currentView === 'pomodoro' ? 'text-emerald-600 border-b-2 border-emerald-600 pb-1' : 'text-slate-400 hover:text-emerald-500'}`}
+              onClick={() => onNavigate('trending')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentView === 'trending' ? 'bg-orange-50 text-orange-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
             >
-              <span className="text-base">⏱️</span>
-              <span className="hidden xs:inline">بومودورو</span>
+              التريند 🔥
             </button>
             <button 
-              onClick={() => onNavigate('trending')}
-              className={`text-xs font-black transition-all ${currentView === 'trending' ? 'text-orange-500 border-b-2 border-orange-500 pb-1' : 'text-slate-400 hover:text-slate-600'}`}
+              onClick={() => onNavigate('pomodoro')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${currentView === 'pomodoro' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-emerald-500 hover:bg-slate-50'}`}
             >
-              التريند
+              <span className="hidden xs:inline">بومودورو</span>
+              <span>⏱️</span>
             </button>
           </div>
 
           <button 
             onClick={() => onNavigate('profile')}
-            className={`flex items-center gap-2 p-1.5 rounded-2xl transition-all border ${currentView === 'profile' ? 'bg-blue-50 border-blue-200' : 'border-transparent hover:bg-slate-50'}`}
+            className={`flex items-center gap-3 p-1.5 pr-4 rounded-2xl transition-all border ${currentView === 'profile' ? 'bg-blue-50 border-blue-100' : 'border-slate-100 hover:bg-slate-50'}`}
           >
-            <div className="flex flex-col items-end mr-1 hidden sm:flex">
+            <div className="flex flex-col items-end hidden sm:flex">
               <span className="text-[10px] font-black text-blue-600 leading-none">{currentUser?.points} نقطة</span>
-              <span className="text-[11px] font-bold text-slate-500">بروفايلي</span>
+              <span className="text-[11px] font-bold text-slate-500">حسابي</span>
             </div>
-            <img src={currentUser?.avatar} className="w-9 h-9 rounded-full border border-white shadow-sm bg-slate-50" alt="me" />
+            <img src={currentUser?.avatar} className="w-10 h-10 rounded-xl border border-white shadow-sm bg-white" alt="profile" />
           </button>
         </div>
       </div>

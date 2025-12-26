@@ -38,10 +38,8 @@ const App: React.FC = () => {
 
   const observer = useRef<IntersectionObserver | null>(null);
 
-  const loadInitialData = async () => {
-    setIsLoading(true);
-    setPage(0);
-    setHasMore(true);
+  const loadInitialData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [data, students] = await Promise.all([
         postService.getAll(0, 10),
@@ -49,11 +47,12 @@ const App: React.FC = () => {
       ]);
       setPosts(data || []);
       setTopStudents(students || []);
-      if (data.length < 10) setHasMore(false);
+      setPage(0);
+      setHasMore(data.length >= 10);
     } catch (e) {
       console.error("Initial Load Error:", e);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -66,7 +65,11 @@ const App: React.FC = () => {
       if (morePosts.length === 0) {
         setHasMore(false);
       } else {
-        setPosts(prev => [...prev, ...morePosts]);
+        setPosts(prev => {
+          const combined = [...prev, ...morePosts];
+          // إزالة التكرارات الناتجة عن الدمج المحلي
+          return combined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+        });
         setPage(nextPage);
         if (morePosts.length < 10) setHasMore(false);
       }
@@ -96,7 +99,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (view === 'home' || view === 'trending') {
-      loadInitialData();
+      loadInitialData(true); // تحديث صامت عند تغيير المادة
     }
   }, [selectedSubject, view]);
 
@@ -136,23 +139,22 @@ const App: React.FC = () => {
       let urls: string[] = [];
       if (selectedFiles.length > 0) {
         urls = await postService.uploadFiles(selectedFiles);
-        if (urls.length < selectedFiles.length) {
-          alert("بعض الصور فشل رفعها، اتأكد من النت وجرب تاني.");
-        }
       }
+      
       const ok = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
       
       if (ok) {
+        // إغلاق الفورم وتصفيرها فوراً
+        setIsModalOpen(false);
         setNewPost({ title: '', content: '', subject: 'أخرى' });
         setSelectedFiles([]);
         setImagePreviews([]);
-        setIsModalOpen(false);
+        
+        // الانتقال للرئيسية والريفريش
         setView('home');
         setSelectedSubject('الكل');
-        await loadInitialData();
+        await loadInitialData(true); // ريفريش صامت عشان التجربة تبقى ناعمة
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        alert("معلش يا بطل، حصل مشكلة في النشر. جرب تاني!");
       }
     } catch (err) {
       console.error("Create Post Exception:", err);
@@ -312,7 +314,7 @@ const App: React.FC = () => {
                   <div className="py-24 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                     <div className="text-5xl mb-6">🌵</div>
                     <p className="text-sm font-black text-slate-400">مفيش ملخصات هنا حالياً..</p>
-                    <button onClick={loadInitialData} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">إعادة تحميل 🔄</button>
+                    <button onClick={() => loadInitialData()} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">إعادة تحميل 🔄</button>
                   </div>
                 )}
               </div>
@@ -425,7 +427,7 @@ const App: React.FC = () => {
             await authService.updateProfile(currentUser.id, {name: n, avatar: a}); 
             setCurrentUser(db.getCurrentUser()); 
             setIsEditProfileOpen(false); 
-            await loadInitialData(); 
+            await loadInitialData(true); 
           }} 
         />
       )}
