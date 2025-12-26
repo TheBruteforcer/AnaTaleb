@@ -8,53 +8,49 @@ const getStudentAvatar = (seed: string) => `https://api.dicebear.com/7.x/bottts/
 
 export const authService = {
   login: async (email: string, pass: string): Promise<User | null> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
 
-    if (error || !data) return null;
+      if (error || !data) return null;
 
-    const user: User = {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      avatar: data.avatar,
-      points: data.points,
-      role: data.role,
-      joinedAt: new Date(data.created_at).getTime()
-    };
+      const user: User = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        avatar: data.avatar,
+        points: data.points,
+        role: data.role,
+        joinedAt: new Date(data.created_at).getTime()
+      };
 
-    db.setCurrentUser(user);
-    return user;
+      db.setCurrentUser(user);
+      return user;
+    } catch (e) {
+      console.error("Login service error:", e);
+      return null;
+    }
   },
 
   register: async (name: string, email: string, pass: string): Promise<User> => {
     const emailLower = email.toLowerCase();
     
-    const { data: existing } = await supabase
+    // التأكد أولاً إذا كان الحساب موجود
+    const { data: existing, error: checkError } = await supabase
       .from('profiles')
       .select('*')
       .eq('email', emailLower)
-      .single();
+      .maybeSingle();
 
     if (existing) {
-      const user: User = {
-        id: existing.id,
-        name: existing.name,
-        email: existing.email,
-        avatar: existing.avatar,
-        points: existing.points,
-        role: existing.role,
-        joinedAt: new Date(existing.created_at).getTime()
-      };
-      db.setCurrentUser(user);
-      return user;
+      throw new Error("الإيميل ده مسجل قبل كدة، جرب تدخل بحسابك!");
     }
 
     const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    const isFirstUser = count === 0;
+    const isFirstUser = (count === 0);
 
     const newUser = {
       name,
@@ -70,7 +66,10 @@ export const authService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw new Error("حصل مشكلة وأحنا بنسجل بياناتك، جرب تاني كمان شوية.");
+    }
 
     const user: User = {
       id: data.id,
