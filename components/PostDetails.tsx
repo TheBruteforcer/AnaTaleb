@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Post, User } from '../types';
 import CommentSection from './CommentSection';
 import { postService } from '../services/postService';
-import { explainPostContent } from '../services/geminiService';
+import { explainPostContent, generateQuizFromContent } from '../services/geminiService';
 import { STRINGS } from '../strings';
 
 interface PostDetailsProps {
@@ -11,15 +11,16 @@ interface PostDetailsProps {
   currentUser: User;
   onUpdate: () => void;
   onBack: () => void;
+  onStartQuizFromPost?: (quizData: any) => void;
 }
 
-const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, onBack }) => {
+const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, onBack, onStartQuizFromPost }) => {
   const [isBusy, setIsBusy] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
 
   const isLiked = post.likes?.includes(currentUser.id) || false;
-  const isReported = post.reports?.includes(currentUser.id) || false;
 
   const handleLike = async () => {
     if (isBusy) return;
@@ -46,29 +47,15 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
     }
   };
 
-  const handlePin = async () => {
-    if (isBusy) return;
-    setIsBusy(true);
+  const handleTestMe = async () => {
+    setIsGeneratingQuiz(true);
     try {
-      await postService.togglePin(post.id, !!post.isPinned);
-      onUpdate();
+      const quiz = await generateQuizFromContent(post.title, post.content);
+      onStartQuizFromPost?.(quiz);
+    } catch (e) {
+      alert("فشل توليد الاختبار، حاول مع ملخص أطول قليلاً.");
     } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (isBusy) return;
-    if (confirm(STRINGS.post.adminDeleteConfirm)) {
-      setIsBusy(true);
-      try {
-        await postService.deletePost(post.id);
-        onBack();
-      } catch (e) {
-        alert('فشل الحذف');
-      } finally {
-        setIsBusy(false);
-      }
+      setIsGeneratingQuiz(false);
     }
   };
 
@@ -96,19 +83,17 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
                src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.authorId || post.author}`} 
                className="w-14 h-14 rounded-full border-4 border-slate-50 shadow-md" 
                alt="author" 
-               loading="lazy"
              />
           </div>
 
           <div className="flex items-center gap-2">
-            {currentUser.role === 'admin' && (
-              <>
-                <button onClick={handlePin} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${post.isPinned ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-blue-100'}`}>
-                  {post.isPinned ? STRINGS.post.pinnedLabel : STRINGS.post.pinLabel}
-                </button>
-                <button onClick={handleDelete} className="px-4 py-2 rounded-xl text-xs font-black bg-rose-50 text-rose-500 hover:bg-rose-100">{STRINGS.post.deleteLabel}</button>
-              </>
-            )}
+            <button 
+              onClick={handleTestMe} 
+              disabled={isGeneratingQuiz}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[11px] font-black shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {isGeneratingQuiz ? STRINGS.quiz.testMeWait : STRINGS.quiz.testMeBtn}
+            </button>
             <button onClick={handleLike} className={`p-3 rounded-2xl transition-all border ${isLiked ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-50 border-slate-100 text-slate-300 hover:text-rose-400'}`}>
               <span className="text-xl">{isLiked ? '❤️' : '🤍'}</span>
             </button>
@@ -147,7 +132,6 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
                       src={url} 
                       className="w-full h-auto object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-500" 
                       alt="attachment" 
-                      loading="lazy"
                       onClick={() => window.open(url, '_blank')} 
                     />
                   </div>

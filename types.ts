@@ -1,6 +1,34 @@
 
 export type Subject = 'رياضيات' | 'علوم' | 'فيزياء' | 'كيمياء' | 'أحياء' | 'لغة عربية' | 'إنجليزي' | 'تاريخ' | 'جغرافيا' | 'أخرى';
 
+export type Grade = 
+  | 'الأول الإعدادي' 
+  | 'الثاني الإعدادي' 
+  | 'الثالث الإعدادي' 
+  | 'الأول الثانوي' 
+  | 'الثاني الثانوي' 
+  | 'الثالث الثانوي';
+
+export interface Question {
+  id: string;
+  text: string;
+  options: string[];
+  correctAnswerIndex: number;
+  explanation: string;
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  description: string;
+  grade: Grade;
+  subject: string;
+  questions: Question[];
+  authorId: string;
+  authorName: string;
+  timestamp: number;
+}
+
 export interface Comment {
   id: string;
   author: string;
@@ -20,7 +48,7 @@ export interface Post {
   reports: string[];
   comments: Comment[];
   timestamp: number;
-  imageUrls?: string[]; // تحديث لدعم مصفوفة صور
+  imageUrls?: string[];
   isPinned?: boolean;
 }
 

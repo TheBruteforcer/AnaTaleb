@@ -4,7 +4,7 @@ import { User } from '../types';
 import { STRINGS } from '../strings';
 
 interface NavbarProps {
-  onNavigate: (view: 'home' | 'trending' | 'subjects' | 'profile' | 'admin' | 'pomodoro') => void;
+  onNavigate: (view: 'home' | 'trending' | 'subjects' | 'profile' | 'admin' | 'pomodoro' | 'quizzes') => void;
   currentView: string;
   currentUser: User | null;
 }
@@ -32,10 +32,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, currentUser })
               {STRINGS.navbar.home}
             </button>
             <button 
-              onClick={() => onNavigate('trending')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentView === 'trending' ? 'bg-orange-50 text-orange-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+              onClick={() => onNavigate('quizzes')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentView === 'quizzes' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
             >
-              {STRINGS.navbar.trending}
+              {STRINGS.navbar.quizzes}
             </button>
             <button 
               onClick={() => onNavigate('pomodoro')}

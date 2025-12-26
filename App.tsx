@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import PostCard from './components/PostCard';
 import PostDetails from './components/PostDetails';
 import PomodoroPage from './components/PomodoroPage';
+import QuizSystem from './components/QuizSystem';
 import AuthScreen from './components/AuthScreen';
 import EditProfileModal from './components/EditProfileModal';
 import AdminDashboard from './components/AdminDashboard';
@@ -19,7 +20,7 @@ import { STRINGS } from './strings';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser());
-  const [view, setView] = useState<'home' | 'trending' | 'subjects' | 'profile' | 'admin' | 'post-details' | 'pomodoro'>('home');
+  const [view, setView] = useState<'home' | 'trending' | 'subjects' | 'profile' | 'admin' | 'post-details' | 'pomodoro' | 'quizzes'>('home');
   const [posts, setPosts] = useState<Post[]>([]);
   const [topStudents, setTopStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string | 'الكل'>('الكل');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [directQuizData, setDirectQuizData] = useState<any | null>(null);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -37,6 +39,18 @@ const App: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [newPost, setNewPost] = useState({ title: '', content: '', subject: STRINGS.subjects.other as Subject });
+
+  // Handle Shared Quiz Links
+  const [sharedQuizId, setSharedQuizId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const qId = urlParams.get('quizId');
+    if (qId) {
+      setSharedQuizId(qId);
+      setView('quizzes');
+    }
+  }, []);
 
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -101,6 +115,10 @@ const App: React.FC = () => {
   useEffect(() => {
     if (view === 'home' || view === 'trending') {
       loadInitialData(true);
+    }
+    // Clear temp quiz data when leaving quiz view
+    if (view !== 'quizzes') {
+      setDirectQuizData(null);
     }
   }, [selectedSubject, view]);
 
@@ -186,7 +204,7 @@ const App: React.FC = () => {
   if (!currentUser) return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] pb-20 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#fafbfc] pb-20 selection:bg-blue-100 selection:text-blue-900 text-right">
       <Navbar onNavigate={setView} currentView={view} currentUser={currentUser} />
       
       {(view === 'home' || view === 'trending') && (
@@ -216,12 +234,18 @@ const App: React.FC = () => {
           <AdminDashboard currentUser={currentUser} onUpdate={loadInitialData} />
         ) : view === 'pomodoro' ? (
           <PomodoroPage />
+        ) : view === 'quizzes' ? (
+          <QuizSystem currentUser={currentUser} initialQuizId={sharedQuizId} directQuizData={directQuizData} />
         ) : view === 'post-details' && selectedPost ? (
           <PostDetails 
             post={selectedPost} 
             currentUser={currentUser} 
             onUpdate={loadInitialData} 
             onBack={() => setView('home')} 
+            onStartQuizFromPost={(data) => {
+              setDirectQuizData(data);
+              setView('quizzes');
+            }}
           />
         ) : view === 'profile' ? (
           <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto">
@@ -303,12 +327,6 @@ const App: React.FC = () => {
                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{STRINGS.home.fetchingMore}</p>
                       </div>
                     )}
-                    
-                    {!hasMore && filteredPosts.length > 5 && (
-                      <div className="py-10 text-center">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{STRINGS.home.endOfPosts}</p>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="py-24 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
@@ -334,19 +352,11 @@ const App: React.FC = () => {
                          <span className="font-black text-blue-600 text-[10px] bg-blue-50 px-3 py-1 rounded-xl group-hover:bg-blue-100 transition-colors">{s.points}</span>
                          <div className="flex items-center gap-3">
                           <span className="font-bold text-slate-700 text-xs line-clamp-1">{s.name}</span>
-                          <img src={s.avatar} className="w-9 h-9 rounded-full border border-slate-100 shadow-sm" alt="top user" loading="lazy" />
+                          <img src={s.avatar} className="w-9 h-9 rounded-full border border-slate-100 shadow-sm" alt="top user" />
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-                
-                <div onClick={() => setView('pomodoro')} className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] p-7 text-white shadow-2xl shadow-blue-100 relative overflow-hidden cursor-pointer group hover:scale-[1.02] transition-transform">
-                   <div className="relative z-10">
-                     <h4 className="font-black text-base mb-3 group-hover:translate-x-1 transition-transform">{STRINGS.home.pomodoroAdTitle}</h4>
-                     <p className="text-xs font-medium text-blue-100 leading-relaxed mb-6">{STRINGS.home.pomodoroAdDesc}</p>
-                   </div>
-                   <div className="absolute -right-4 -bottom-4 text-7xl opacity-20 rotate-12 transition-transform group-hover:rotate-45">🧠</div>
                 </div>
               </div>
             </aside>
