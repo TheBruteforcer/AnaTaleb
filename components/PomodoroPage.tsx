@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { STRINGS } from '../strings';
 
 const PomodoroPage: React.FC = () => {
   const [seconds, setSeconds] = useState(25 * 60);
@@ -37,7 +38,7 @@ const PomodoroPage: React.FC = () => {
         audio.play().catch(e => console.log('Audio error'));
       } catch (e) {}
       
-      alert(nextMode === 'study' ? 'يلا نرجع نذاكر! 💪' : 'وقت الراحة يا بطل! ☕');
+      alert(nextMode === 'study' ? STRINGS.pomodoro.studyAlert : STRINGS.pomodoro.breakAlert);
     }
     return () => clearInterval(interval);
   }, [isActive, seconds, mode]);
@@ -66,13 +67,13 @@ const PomodoroPage: React.FC = () => {
             onClick={() => { setMode('study'); setSeconds(25 * 60); setIsActive(false); }}
             className={`px-8 py-3.5 rounded-2xl text-[11px] font-black transition-all ${mode === 'study' ? 'bg-blue-600 text-white shadow-xl shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100 hover:bg-slate-50'}`}
           >
-            جلسة مذاكرة 📚
+            {STRINGS.pomodoro.sessionStudy}
           </button>
           <button 
             onClick={() => { setMode('break'); setSeconds(5 * 60); setIsActive(false); }}
             className={`px-8 py-3.5 rounded-2xl text-[11px] font-black transition-all ${mode === 'break' ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-200' : 'bg-white text-slate-400 border border-slate-100 hover:bg-slate-50'}`}
           >
-            استراحة قهوة ☕
+            {STRINGS.pomodoro.sessionBreak}
           </button>
         </div>
 
@@ -92,7 +93,7 @@ const PomodoroPage: React.FC = () => {
             <span className="text-7xl md:text-9xl font-black text-slate-800 font-mono tracking-tighter leading-none">{formatTime(seconds)}</span>
             <div className={`flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${mode === 'study' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
               <span className={`w-2 h-2 rounded-full ${isActive ? 'animate-ping' : ''} ${mode === 'study' ? 'bg-blue-500' : 'bg-emerald-500'}`}></span>
-              {mode === 'study' ? 'وقت التركيز' : 'وقت الراحة'}
+              {mode === 'study' ? STRINGS.pomodoro.labelStudy : STRINGS.pomodoro.labelBreak}
             </div>
           </div>
         </div>
@@ -102,13 +103,13 @@ const PomodoroPage: React.FC = () => {
             onClick={toggle}
             className={`w-full py-6 rounded-3xl text-xl font-black transition-all transform active:scale-95 shadow-2xl ${isActive ? 'bg-slate-800 text-white' : 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700'}`}
           >
-            {isActive ? 'إيقاف مؤقت ⏸️' : 'ابدأ العداد 🚀'}
+            {isActive ? STRINGS.pomodoro.pause : STRINGS.pomodoro.start}
           </button>
           
           <div className="flex gap-4 w-full">
-            <button onClick={reset} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black text-slate-500 hover:bg-slate-200 transition-colors">إعادة ضبط 🔄</button>
+            <button onClick={reset} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black text-slate-500 hover:bg-slate-200 transition-colors">{STRINGS.pomodoro.reset}</button>
             <div className="flex-1 py-4 bg-white border border-slate-100 rounded-2xl font-black text-slate-700 flex flex-col items-center justify-center shadow-sm">
-               <span className="text-[9px] text-slate-400 uppercase tracking-tighter">الجلسات المكتملة</span>
+               <span className="text-[9px] text-slate-400 uppercase tracking-tighter">{STRINGS.pomodoro.completedSessions}</span>
                <span className="text-xl leading-none mt-1">{sessionsCompleted}</span>
             </div>
           </div>
@@ -117,7 +118,7 @@ const PomodoroPage: React.FC = () => {
         <div className="mt-16 p-8 bg-slate-50/50 rounded-[2.5rem] border border-dashed border-slate-200 relative z-10">
            <div className="flex items-center justify-center gap-2 mb-3">
               <span className="text-xl">💡</span>
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">نصيحة الدحيح</span>
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{STRINGS.pomodoro.aiTipTitle}</span>
            </div>
            <p className="text-sm font-bold text-slate-600 italic">"{currentTip}"</p>
         </div>

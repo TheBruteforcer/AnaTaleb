@@ -15,6 +15,7 @@ import { SUBJECTS_WITH_ICONS } from './constants';
 import { db } from './lib/db';
 import { postService } from './services/postService';
 import { authService } from './services/authService';
+import { STRINGS } from './strings';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser());
@@ -35,7 +36,7 @@ const App: React.FC = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [newPost, setNewPost] = useState({ title: '', content: '', subject: 'أخرى' as Subject });
+  const [newPost, setNewPost] = useState({ title: '', content: '', subject: STRINGS.subjects.other as Subject });
 
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -144,21 +145,17 @@ const App: React.FC = () => {
       const success = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
       
       if (success) {
-        // 1. إغلاق النافذة فوراً
         setIsModalOpen(false);
-        // 2. تصفير الحقول
-        setNewPost({ title: '', content: '', subject: 'أخرى' });
+        setNewPost({ title: '', content: '', subject: STRINGS.subjects.other as Subject });
         setSelectedFiles([]);
         setImagePreviews([]);
-        // 3. تحديث القائمة فوراً
         await loadInitialData(true);
-        // 4. توجيه المستخدم للأحدث
         setView('home');
-        setSelectedSubject('الكل');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
       console.error("Publishing error:", err);
+      alert(STRINGS.alerts.publishError);
     } finally {
       setIsPublishing(false);
     }
@@ -199,7 +196,7 @@ const App: React.FC = () => {
               onClick={() => setSelectedSubject('الكل')} 
               className={`whitespace-nowrap px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all ${selectedSubject === 'الكل' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
             >
-              الكل 🏠
+              {STRINGS.home.allSubjects}
             </button>
             {SUBJECTS_WITH_ICONS.map(s => (
               <button 
@@ -234,14 +231,14 @@ const App: React.FC = () => {
                   <span className="absolute -bottom-1 -right-1 text-2xl">🏆</span>
                 </div>
                 <h2 className="text-2xl font-black text-slate-800">{currentUser.name}</h2>
-                <p className="text-base text-blue-600 font-black mb-8">{currentUser.points} نقطة دحيح</p>
+                <p className="text-base text-blue-600 font-black mb-8">{currentUser.points} {STRINGS.profile.pointsLabel}</p>
                 <div className="flex flex-wrap gap-3 justify-center">
-                  <button onClick={() => setIsEditProfileOpen(true)} className="px-8 py-3.5 text-[11px] font-black bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-colors">تعديل الملف</button>
-                  {currentUser.role === 'admin' && <button onClick={() => setView('admin')} className="px-8 py-3.5 text-[11px] font-black bg-purple-50 text-purple-600 rounded-2xl border border-purple-100">إدارة المنصة</button>}
-                  <button onClick={handleLogout} className="px-8 py-3.5 text-[11px] font-black text-rose-500 bg-rose-50 rounded-2xl">تسجيل خروج</button>
+                  <button onClick={() => setIsEditProfileOpen(true)} className="px-8 py-3.5 text-[11px] font-black bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-colors">{STRINGS.profile.editProfile}</button>
+                  {currentUser.role === 'admin' && <button onClick={() => setView('admin')} className="px-8 py-3.5 text-[11px] font-black bg-purple-50 text-purple-600 rounded-2xl border border-purple-100">{STRINGS.profile.adminPanel}</button>}
+                  <button onClick={handleLogout} className="px-8 py-3.5 text-[11px] font-black text-rose-500 bg-rose-50 rounded-2xl">{STRINGS.profile.logout}</button>
                 </div>
              </div>
-             <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest text-right px-2 mt-10">ملخصاتك اللي نشرتها ✨</h3>
+             <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest text-right px-2 mt-10">{STRINGS.profile.myPosts}</h3>
              <div className="space-y-5">
                {posts.filter(p => p.authorId === currentUser.id).map(p => (
                  <PostCard key={p.id} post={p} currentUser={currentUser} onUpdate={loadInitialData} onSelect={handleSelectPost} />
@@ -255,7 +252,7 @@ const App: React.FC = () => {
                 <div className="relative flex-1">
                   <input 
                     type="text" 
-                    placeholder="بتدور على درس إيه؟" 
+                    placeholder={STRINGS.home.searchPlaceholder} 
                     className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pr-12 pl-4 outline-none text-sm font-bold text-slate-700 focus:ring-4 focus:ring-blue-50/50 transition-all shadow-sm text-right" 
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)} 
@@ -266,29 +263,29 @@ const App: React.FC = () => {
                   onClick={() => setIsModalOpen(true)} 
                   className="bg-blue-600 text-white text-sm font-black px-8 py-4 rounded-[1.5rem] shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
                 >
-                  + انشر ملخصك
+                  {STRINGS.home.publishButton}
                 </button>
               </div>
 
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-4 px-2">
-                   <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{view === 'trending' ? '🔥 الأكثر تفاعلاً' : '✨ آخر الملخصات'}</span>
+                   <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{view === 'trending' ? STRINGS.home.trendingLabel : STRINGS.home.latestLabel}</span>
                    <div className="flex gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
-                      <button onClick={() => setView('home')} className={`text-[10px] font-black px-5 py-2.5 rounded-xl transition-all ${view === 'home' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>الأحدث</button>
-                      <button onClick={() => setView('trending')} className={`text-[10px] font-black px-5 py-2.5 rounded-xl transition-all ${view === 'trending' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-400 hover:text-orange-600'}`}>التريند</button>
+                      <button onClick={() => setView('home')} className={`text-[10px] font-black px-5 py-2.5 rounded-xl transition-all ${view === 'home' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>{STRINGS.home.sortLatest}</button>
+                      <button onClick={() => setView('trending')} className={`text-[10px] font-black px-5 py-2.5 rounded-xl transition-all ${view === 'trending' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-400 hover:text-orange-600'}`}>{STRINGS.home.sortTrending}</button>
                    </div>
                 </div>
 
                 {isLoading && page === 0 ? (
                   <div className="py-32 text-center">
                     <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                    <p className="text-sm font-black text-slate-300">لحظة يا بطل.. بنرتبلك الملخصات!</p>
+                    <p className="text-sm font-black text-slate-300">{STRINGS.home.loadingText}</p>
                   </div>
                 ) : filteredPosts.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6 pb-20">
                     {filteredPosts.map((post, idx) => {
                       const isLast = filteredPosts.length === idx + 1;
-                      const showAd = idx === 2; // عرض الإعلان الأفقي بعد ثالث منشور
+                      const showAd = idx === 2;
                       
                       return (
                         <React.Fragment key={post.id}>
@@ -303,21 +300,21 @@ const App: React.FC = () => {
                     {isFetchingMore && (
                       <div className="py-10 text-center">
                          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بنحمل بوستات تانية...</p>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{STRINGS.home.fetchingMore}</p>
                       </div>
                     )}
                     
                     {!hasMore && filteredPosts.length > 5 && (
                       <div className="py-10 text-center">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">وصلت لنهاية الملخصات يا بطل! 🏁</p>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{STRINGS.home.endOfPosts}</p>
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="py-24 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                     <div className="text-5xl mb-6">🌵</div>
-                    <p className="text-sm font-black text-slate-400">مفيش ملخصات هنا حالياً..</p>
-                    <button onClick={() => loadInitialData()} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">إعادة تحميل 🔄</button>
+                    <p className="text-sm font-black text-slate-400">{STRINGS.home.emptyPosts}</p>
+                    <button onClick={() => loadInitialData()} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">{STRINGS.home.reloadButton}</button>
                   </div>
                 )}
               </div>
@@ -325,12 +322,11 @@ const App: React.FC = () => {
 
             <aside className="hidden md:block md:col-span-4 lg:col-span-3 space-y-8">
               <div className="sticky top-32 space-y-8">
-                {/* الإعلان الجانبي */}
                 <AdBanner type="sidebar" />
 
                 <div className="bg-white border border-slate-100 rounded-[2.5rem] p-7 shadow-sm text-right">
                   <h3 className="text-[11px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center justify-end gap-2">
-                    لوحة المتفوقين 🏆
+                    {STRINGS.home.topStudents}
                   </h3>
                   <div className="space-y-5">
                     {topStudents.map((s, idx) => (
@@ -347,8 +343,8 @@ const App: React.FC = () => {
                 
                 <div onClick={() => setView('pomodoro')} className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] p-7 text-white shadow-2xl shadow-blue-100 relative overflow-hidden cursor-pointer group hover:scale-[1.02] transition-transform">
                    <div className="relative z-10">
-                     <h4 className="font-black text-base mb-3 group-hover:translate-x-1 transition-transform">افتح البومودورو! ⏱️</h4>
-                     <p className="text-xs font-medium text-blue-100 leading-relaxed mb-6">ذاكر بتركيز وخد راحة صح.</p>
+                     <h4 className="font-black text-base mb-3 group-hover:translate-x-1 transition-transform">{STRINGS.home.pomodoroAdTitle}</h4>
+                     <p className="text-xs font-medium text-blue-100 leading-relaxed mb-6">{STRINGS.home.pomodoroAdDesc}</p>
                    </div>
                    <div className="absolute -right-4 -bottom-4 text-7xl opacity-20 rotate-12 transition-transform group-hover:rotate-45">🧠</div>
                 </div>
@@ -365,13 +361,13 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
             <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-base font-black text-slate-800">إضافة ملخص جديد 📖</h3>
+              <h3 className="text-base font-black text-slate-800">{STRINGS.post.newPostTitle}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 font-black px-2 transition-colors text-xl">✕</button>
             </div>
             <div className="p-8 space-y-5 text-right">
                 <input 
                   type="text" 
-                  placeholder="عنوان الدرس.." 
+                  placeholder={STRINGS.post.titlePlaceholder} 
                   className="w-full bg-slate-50 rounded-2xl px-5 py-4 text-sm font-bold outline-none border border-slate-100 text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all" 
                   value={newPost.title} 
                   onChange={(e) => setNewPost({...newPost, title: e.target.value})} 
@@ -385,12 +381,12 @@ const App: React.FC = () => {
                       {SUBJECTS_WITH_ICONS.map(s => <option key={s.name} value={s.name}>{s.icon} {s.name}</option>)}
                     </select>
                     <label className="bg-blue-50 border border-dashed border-blue-200 rounded-2xl flex items-center justify-center text-[11px] font-black text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors h-[58px]">
-                      <span>{selectedFiles.length > 0 ? `✅ (${selectedFiles.length}) صور` : '📷 أضف صور'}</span>
+                      <span>{selectedFiles.length > 0 ? `✅ (${selectedFiles.length}) ${STRINGS.post.imagesSelected}` : STRINGS.post.addImages}</span>
                       <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                     </label>
                 </div>
                 <textarea 
-                  placeholder="اكتب أهم النقاط في الدرس هنا.." 
+                  placeholder={STRINGS.post.contentPlaceholder} 
                   rows={5} 
                   className="w-full bg-slate-50 rounded-2xl px-5 py-4 text-sm font-bold outline-none border border-slate-100 resize-none text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all" 
                   value={newPost.content} 
@@ -418,7 +414,7 @@ const App: React.FC = () => {
                 disabled={isPublishing || !newPost.title || !newPost.content} 
                 className="w-full bg-blue-600 text-white font-black py-5 rounded-[1.5rem] text-base shadow-2xl shadow-blue-100 disabled:opacity-50 disabled:shadow-none hover:bg-blue-700 transition-all active:scale-95 mt-4"
               >
-                {isPublishing ? 'جاري النشر...' : 'انشر دلوقتي 🚀'}
+                {isPublishing ? STRINGS.post.publishing : STRINGS.post.publishNow}
               </button> 
             </div>
           </div>

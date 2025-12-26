@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { STRINGS } from '../strings';
 
 const StudyTimer: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,7 +19,7 @@ const StudyTimer: React.FC = () => {
       const nextMode = mode === 'study' ? 'break' : 'study';
       setMode(nextMode);
       setSeconds(nextMode === 'study' ? 25 * 60 : 5 * 60);
-      alert(nextMode === 'study' ? 'يلا نرجع نذاكر! 💪' : 'وقت الراحة يا بطل! ☕');
+      alert(nextMode === 'study' ? STRINGS.pomodoro.studyAlert : STRINGS.pomodoro.breakAlert);
     }
     return () => clearInterval(interval);
   }, [isActive, seconds, mode]);
@@ -41,7 +42,7 @@ const StudyTimer: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-4 shadow-2xl w-48 animate-in zoom-in-95 duration-200 text-center">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              {mode === 'study' ? 'مذاكرة 📚' : 'راحة ☕'}
+              {mode === 'study' ? STRINGS.pomodoro.sessionStudy : STRINGS.pomodoro.sessionBreak}
             </span>
             <button onClick={() => setIsOpen(false)} className="text-slate-300 hover:text-rose-500">✕</button>
           </div>
@@ -51,7 +52,7 @@ const StudyTimer: React.FC = () => {
               onClick={toggle}
               className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${isActive ? 'bg-amber-100 text-amber-600' : 'bg-blue-600 text-white shadow-lg shadow-blue-200'}`}
             >
-              {isActive ? 'إيقاف' : 'ابدأ'}
+              {isActive ? STRINGS.pomodoro.miniPause : STRINGS.pomodoro.miniStart}
             </button>
             <button onClick={reset} className="p-2 bg-slate-100 rounded-xl text-xs">🔄</button>
           </div>

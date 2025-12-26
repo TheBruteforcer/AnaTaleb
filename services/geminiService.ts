@@ -1,5 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { STRINGS } from "../strings";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -14,11 +15,11 @@ export const getStudyBuddyAdvice = async (userMessage: string) => {
       },
     });
 
-    let text = response.text || "مش عارف أقولك إيه والله يا صاحبي..";
+    let text = response.text || STRINGS.gemini.defaultResponse;
     
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks && chunks.length > 0) {
-      text += "\n\n🔗 المصادر اللي لقيتها:";
+      text += `\n\n${STRINGS.gemini.sourcesLabel}`;
       const seenUrls = new Set();
       chunks.forEach((chunk: any) => {
         if (chunk.web?.uri && !seenUrls.has(chunk.web.uri)) {
@@ -31,7 +32,7 @@ export const getStudyBuddyAdvice = async (userMessage: string) => {
     return text;
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "معلش يا صاحبي، النت عندي مهنج شوية.. جرب تاني!";
+    return STRINGS.gemini.error;
   }
 };
 
@@ -44,8 +45,8 @@ export const explainPostContent = async (title: string, content: string) => {
         systemInstruction: "أنت معلم مصري عبقري يبسط المعلومة للطلاب في جملتين فقط باللهجة العامية المصرية. ابدأ بكلمة 'بص يا بطل...' وانهِ بكلمة 'بالتوفيق يا دحيح!'",
       },
     });
-    return response.text || "مقدرتش أشرح الملخص ده للأسف.";
+    return response.text || STRINGS.gemini.defaultResponse;
   } catch (error) {
-    return "حصل مشكلة في الشرح، حاول كمان شوية.";
+    return STRINGS.gemini.aiExplainError;
   }
 };

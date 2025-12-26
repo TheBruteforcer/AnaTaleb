@@ -4,6 +4,7 @@ import { Post, User } from '../types';
 import CommentSection from './CommentSection';
 import { postService } from '../services/postService';
 import { explainPostContent } from '../services/geminiService';
+import { STRINGS } from '../strings';
 
 interface PostCardProps {
   post: Post;
@@ -21,7 +22,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
   const [localLikes, setLocalLikes] = useState<string[]>(post.likes || []);
   const isLiked = localLikes.includes(currentUser.id);
   const isReported = post.reports?.includes(currentUser.id) || false;
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser && currentUser.role === 'admin';
 
   useEffect(() => {
     setLocalLikes(post.likes || []);
@@ -44,24 +45,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
 
   const handleReport = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('هل أنت متأكد من التبليغ عن هذا المحتوى؟')) {
-      await postService.reportPost(post.id, currentUser.id);
+    if (confirm(STRINGS.post.reportConfirm)) {
+      const success = await postService.reportPost(post.id, currentUser.id);
+      if (success) {
+        alert(STRINGS.post.reportSuccess);
+      }
       onUpdate();
     }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('يا أدمن، متأكد إنك عايز تحذف البوست ده نهائياً؟')) {
+    if (confirm(STRINGS.post.adminDeleteConfirm)) {
+      setIsBusy(true);
       await postService.deletePost(post.id);
       onUpdate();
+      setIsBusy(false);
     }
   };
 
   const handleTogglePin = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsBusy(true);
     await postService.togglePin(post.id, !!post.isPinned);
     onUpdate();
+    setIsBusy(false);
   };
 
   const handleAIExplain = async (e: React.MouseEvent) => {
@@ -94,13 +102,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
   return (
     <div 
       onClick={() => onSelect?.(post.id)}
-      className={`group relative bg-white rounded-3xl border border-slate-200/60 overflow-hidden mb-5 transition-all duration-300 hover:shadow-xl ${post.isPinned ? 'ring-2 ring-blue-500 bg-blue-50/20' : ''}`}
+      className={`group relative bg-white rounded-3xl border border-slate-200/60 overflow-hidden mb-5 transition-all duration-300 hover:shadow-xl ${post.isPinned ? 'ring-2 ring-blue-500 bg-blue-50/10' : ''}`}
     >
       <div className="p-5">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
              <img 
-              src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`} 
+              src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.authorId || post.author}`} 
               className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm" 
               alt="avatar" 
             />
@@ -114,18 +122,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
           
           <div className="flex gap-2">
             {isAdmin && (
-              <>
-                <button onClick={handleTogglePin} title={post.isPinned ? "إلغاء التثبيت" : "تثبيت"} className={`p-2 rounded-xl transition-all ${post.isPinned ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
+              <div className="flex gap-1">
+                <button 
+                  onClick={handleTogglePin} 
+                  title={post.isPinned ? STRINGS.post.unpinLabel : STRINGS.post.pinLabel} 
+                  className={`p-2 rounded-xl transition-all ${post.isPinned ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                >
                   📌
                 </button>
-                <button onClick={handleDelete} title="حذف المنشور" className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-all">
+                <button 
+                  onClick={handleDelete} 
+                  title={STRINGS.post.deleteLabel} 
+                  className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                >
                   🗑️
                 </button>
-              </>
+              </div>
             )}
             <button 
               onClick={handleReport}
-              className={`p-2 rounded-xl transition-colors ${isReported ? 'text-orange-500 bg-orange-50' : 'text-slate-300 hover:bg-slate-50 hover:text-orange-500'}`}
+              className={`p-2 rounded-xl transition-colors ${isReported ? 'text-orange-500 bg-orange-100' : 'text-slate-300 bg-slate-50 hover:text-orange-500'}`}
               title="تبليغ"
             >
               🚩
@@ -145,7 +161,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
           <div className="mb-4 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl animate-in zoom-in-95 duration-300">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-sm">🤖</span>
-              <span className="text-[10px] font-black text-indigo-600 uppercase">شرح الدحيح الذكي</span>
+              <span className="text-[10px] font-black text-indigo-600 uppercase">{STRINGS.post.aiExplainLabel}</span>
             </div>
             <p className="text-xs font-bold text-slate-700 leading-relaxed italic">"{aiExplanation}"</p>
           </div>
@@ -190,7 +206,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black transition-all ${aiExplanation ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'}`}
           >
             {isExplaining ? <span className="animate-spin text-xs">🌀</span> : <span>🤖</span>}
-            {aiExplanation ? 'إخفاء الشرح' : 'اشرح لي'}
+            {aiExplanation ? STRINGS.post.aiExplainHide : STRINGS.post.aiExplainButton}
           </button>
         </div>
 

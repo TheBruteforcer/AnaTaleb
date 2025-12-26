@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Comment } from '../types';
+import { STRINGS } from '../strings';
 
 interface CommentSectionProps {
   comments: Comment[];
@@ -20,11 +21,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({ comments, onAddComment,
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100">
-      <h4 className="text-sm font-bold text-gray-700 mb-3">التعليقات ({comments.length})</h4>
+      <h4 className="text-sm font-bold text-gray-700 mb-3">{STRINGS.post.commentsLabel} ({comments.length})</h4>
       
       <div className="space-y-3 mb-4 max-h-60 overflow-y-auto px-1">
         {comments.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-2">محدش علق لسه.. كون أول واحد!</p>
+          <p className="text-xs text-gray-400 text-center py-2">{STRINGS.post.commentEmpty}</p>
         ) : (
           comments.map(c => (
             <div key={c.id} className="bg-gray-50 p-3 rounded-xl text-sm">
@@ -43,14 +44,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({ comments, onAddComment,
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="أكتب تعليقك يا بطل..."
+          placeholder={STRINGS.post.commentPlaceholder}
           className="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-bold"
         />
         <button 
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
         >
-          نشر
+          {STRINGS.post.publishComment}
         </button>
       </form>
     </div>

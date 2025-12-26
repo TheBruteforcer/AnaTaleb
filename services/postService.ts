@@ -58,12 +58,13 @@ export const postService = {
       console.warn("Server fetch failed");
     }
 
-    // جلب المنشورات المحلية المضافة حديثاً فقط (Optimistic)
-    const localPosts = db.getPosts();
+    // جلب المنشورات المحلية المضافة حديثاً فقط (Optimistic UI)
+    // نفلتر أي بيانات قديمة أو وهمية (Mock) لو وجدت في localStorage
+    const localPosts = db.getPosts().filter(p => p.id.startsWith('local-'));
     const combined = [...serverPosts];
     
     localPosts.forEach(lp => {
-      const existsOnServer = combined.find(sp => sp.id === lp.id || (sp.title === lp.title && sp.authorId === lp.authorId));
+      const existsOnServer = combined.find(sp => (sp.title === lp.title && sp.authorId === lp.authorId));
       if (!existsOnServer) {
         combined.push(lp);
       }
@@ -123,19 +124,26 @@ export const postService = {
 
   reportPost: async (postId: string, userId: string): Promise<boolean> => {
     try {
+      // التحقق لو اليوزر بلغ قبل كدة، لو بلغ نشيل البلاغ (Toggle)
       const { data: existing } = await supabase.from('reports').select('*').eq('post_id', postId).eq('user_id', userId).maybeSingle();
       if (existing) {
         await supabase.from('reports').delete().eq('id', existing.id);
         return false;
       } else {
-        await supabase.from('reports').insert([{ post_id: postId, user_id: userId }]);
+        const { error } = await supabase.from('reports').insert([{ post_id: postId, user_id: userId }]);
+        if (error) throw error;
         return true;
       }
-    } catch (e) { return false; }
+    } catch (e) { 
+      console.error("Report Error:", e);
+      return false; 
+    }
   },
 
   deletePost: async (postId: string) => {
+    // حذف من السيرفر
     await supabase.from('posts').delete().eq('id', postId);
+    // حذف من الكاش المحلي
     const locals = db.getPosts().filter(p => p.id !== postId);
     db.savePosts(locals);
   },

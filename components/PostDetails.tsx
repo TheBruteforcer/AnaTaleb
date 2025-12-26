@@ -4,6 +4,7 @@ import { Post, User } from '../types';
 import CommentSection from './CommentSection';
 import { postService } from '../services/postService';
 import { explainPostContent } from '../services/geminiService';
+import { STRINGS } from '../strings';
 
 interface PostDetailsProps {
   post: Post;
@@ -58,7 +59,7 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
 
   const handleDelete = async () => {
     if (isBusy) return;
-    if (confirm('تأكيد حذف المنشور نهائياً؟')) {
+    if (confirm(STRINGS.post.adminDeleteConfirm)) {
       setIsBusy(true);
       try {
         await postService.deletePost(post.id);
@@ -78,7 +79,7 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
         className="mb-6 flex items-center gap-2 text-slate-400 hover:text-blue-600 font-black text-sm transition-colors group"
       >
         <span className="text-xl group-hover:-translate-x-1 transition-transform">➔</span>
-        رجوع للملخصات
+        {STRINGS.post.backToFeed}
       </button>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden text-right">
@@ -92,7 +93,7 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
                </span>
              </div>
              <img 
-               src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.author}`} 
+               src={post.authorId === currentUser.id ? currentUser.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${post.authorId || post.author}`} 
                className="w-14 h-14 rounded-full border-4 border-slate-50 shadow-md" 
                alt="author" 
                loading="lazy"
@@ -103,9 +104,9 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
             {currentUser.role === 'admin' && (
               <>
                 <button onClick={handlePin} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${post.isPinned ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-blue-100'}`}>
-                  {post.isPinned ? '📌 مثبت' : 'تثبيت'}
+                  {post.isPinned ? STRINGS.post.pinnedLabel : STRINGS.post.pinLabel}
                 </button>
-                <button onClick={handleDelete} className="px-4 py-2 rounded-xl text-xs font-black bg-rose-50 text-rose-500 hover:bg-rose-100">حذف</button>
+                <button onClick={handleDelete} className="px-4 py-2 rounded-xl text-xs font-black bg-rose-50 text-rose-500 hover:bg-rose-100">{STRINGS.post.deleteLabel}</button>
               </>
             )}
             <button onClick={handleLike} className={`p-3 rounded-2xl transition-all border ${isLiked ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-50 border-slate-100 text-slate-300 hover:text-rose-400'}`}>
@@ -127,18 +128,18 @@ const PostDetails: React.FC<PostDetailsProps> = ({ post, currentUser, onUpdate, 
           >
             <div className="flex items-center gap-2">
               <span className="text-2xl">{isExplaining ? '🌀' : '🤖'}</span>
-              <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">مساعد الدحيح الذكي</span>
+              <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">{STRINGS.post.aiExplainLabel}</span>
             </div>
             {aiExplanation ? (
               <p className="text-slate-700 font-bold leading-relaxed animate-in fade-in">{aiExplanation}</p>
             ) : (
-              <p className="text-slate-400 text-sm font-bold">{isExplaining ? 'لحظة واحدة يا بطل، بقرأ الملخص...' : 'مش فاهم الملخص؟ اضغط هنا عشان الدحيح يشرحلك ببساطة!'}</p>
+              <p className="text-slate-400 text-sm font-bold">{isExplaining ? STRINGS.post.explainingWait : STRINGS.post.explainPrompt}</p>
             )}
           </button>
 
           {post.imageUrls && post.imageUrls.length > 0 && (
             <div className="space-y-4 mb-8">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">الصور المرفقة ({post.imageUrls.length})</h4>
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">{STRINGS.post.imagesCount} ({post.imageUrls.length})</h4>
               <div className="grid grid-cols-1 gap-4">
                 {post.imageUrls.map((url, idx) => (
                   <div key={idx} className="rounded-[2rem] overflow-hidden border border-slate-100 bg-slate-50 shadow-inner group min-h-[200px]">

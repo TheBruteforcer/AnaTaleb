@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { getStudyBuddyAdvice } from '../services/geminiService';
+import { STRINGS } from '../strings';
 
 const GeminiAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,9 +38,9 @@ const GeminiAssistant: React.FC = () => {
             <div className="flex items-center gap-3 relative z-10">
               <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner">🤖</div>
               <div>
-                <h3 className="font-black leading-none text-base">زميلك الدحيح</h3>
+                <h3 className="font-black leading-none text-base">{STRINGS.gemini.botName}</h3>
                 <span className="text-[9px] font-bold text-blue-100 uppercase tracking-widest flex items-center gap-1 mt-1">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> متصل الآن
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> {STRINGS.gemini.statusOnline}
                 </span>
               </div>
             </div>
@@ -50,17 +51,17 @@ const GeminiAssistant: React.FC = () => {
             {messages.length === 0 && (
               <div className="text-center py-10 px-4">
                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner">✨</div>
-                <h4 className="text-slate-800 font-black text-sm mb-2">أهلاً بيك يا دحيح!</h4>
+                <h4 className="text-slate-800 font-black text-sm mb-2">{STRINGS.gemini.welcomeTitle}</h4>
                 <p className="text-slate-400 font-medium text-xs leading-relaxed">
-                  أنا هنا عشان أساعدك في المذاكرة، أو أبحثلك عن مواعيد الامتحانات وأي معلومة تعليمية.
+                  {STRINGS.gemini.welcomeDesc}
                 </p>
                 <div className="mt-8 space-y-2">
-                  <button onClick={() => handleSend('إزاي أنظم وقتي للمذاكرة؟')} className="w-full text-[10px] bg-white hover:bg-blue-50 transition-colors p-3 rounded-2xl shadow-sm text-blue-600 font-black border border-blue-50 text-right flex items-center justify-between">
-                    <span>إزاي أنظم وقتي للمذاكرة؟</span>
+                  <button onClick={() => handleSend(STRINGS.gemini.tip1)} className="w-full text-[10px] bg-white hover:bg-blue-50 transition-colors p-3 rounded-2xl shadow-sm text-blue-600 font-black border border-blue-50 text-right flex items-center justify-between">
+                    <span>{STRINGS.gemini.tip1}</span>
                     <span>⏱️</span>
                   </button>
-                  <button onClick={() => handleSend('اشرح لي الكيمياء العضوية ببساطة')} className="w-full text-[10px] bg-white hover:bg-blue-50 transition-colors p-3 rounded-2xl shadow-sm text-blue-600 font-black border border-blue-50 text-right flex items-center justify-between">
-                    <span>اشرح لي الكيمياء العضوية ببساطة</span>
+                  <button onClick={() => handleSend(STRINGS.gemini.tip2)} className="w-full text-[10px] bg-white hover:bg-blue-50 transition-colors p-3 rounded-2xl shadow-sm text-blue-600 font-black border border-blue-50 text-right flex items-center justify-between">
+                    <span>{STRINGS.gemini.tip2}</span>
                     <span>🧪</span>
                   </button>
                 </div>
@@ -85,7 +86,7 @@ const GeminiAssistant: React.FC = () => {
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-.15s]"></div>
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-black">الدحيح بيفكر..</span>
+                  <span className="text-[10px] text-slate-400 font-black">{STRINGS.post.aiThinking}</span>
                 </div>
               </div>
             )}
@@ -96,7 +97,7 @@ const GeminiAssistant: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="اسأل زميلك الدحيح..."
+              placeholder={STRINGS.gemini.placeholder}
               className="flex-1 bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
             <button 
@@ -119,7 +120,7 @@ const GeminiAssistant: React.FC = () => {
             <span className="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border-2 border-white"></span>
           </span>
           <div className="absolute left-full ml-4 bg-slate-800 text-white text-[10px] font-black px-4 py-2 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 pointer-events-none shadow-xl">
-            كلم الدحيح! ✨
+            {STRINGS.gemini.fabLabel}
           </div>
         </button>
       )}
