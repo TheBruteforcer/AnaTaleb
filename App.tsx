@@ -9,6 +9,7 @@ import EditProfileModal from './components/EditProfileModal';
 import AdminDashboard from './components/AdminDashboard';
 import GeminiAssistant from './components/GeminiAssistant';
 import StudyTimer from './components/StudyTimer';
+import AdBanner from './components/AdBanner';
 import { Post, Subject, User } from './types';
 import { SUBJECTS_WITH_ICONS } from './constants';
 import { db } from './lib/db';
@@ -67,7 +68,6 @@ const App: React.FC = () => {
       } else {
         setPosts(prev => {
           const combined = [...prev, ...morePosts];
-          // إزالة التكرارات الناتجة عن الدمج المحلي
           return combined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
         });
         setPage(nextPage);
@@ -99,7 +99,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (view === 'home' || view === 'trending') {
-      loadInitialData(true); // تحديث صامت عند تغيير المادة
+      loadInitialData(true);
     }
   }, [selectedSubject, view]);
 
@@ -141,23 +141,24 @@ const App: React.FC = () => {
         urls = await postService.uploadFiles(selectedFiles);
       }
       
-      const ok = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
+      const success = await postService.create(newPost.title, newPost.content, newPost.subject, { name: currentUser.name, id: currentUser.id }, urls);
       
-      if (ok) {
-        // إغلاق الفورم وتصفيرها فوراً
+      if (success) {
+        // 1. إغلاق النافذة فوراً
         setIsModalOpen(false);
+        // 2. تصفير الحقول
         setNewPost({ title: '', content: '', subject: 'أخرى' });
         setSelectedFiles([]);
         setImagePreviews([]);
-        
-        // الانتقال للرئيسية والريفريش
+        // 3. تحديث القائمة فوراً
+        await loadInitialData(true);
+        // 4. توجيه المستخدم للأحدث
         setView('home');
         setSelectedSubject('الكل');
-        await loadInitialData(true); // ريفريش صامت عشان التجربة تبقى ناعمة
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
-      console.error("Create Post Exception:", err);
+      console.error("Publishing error:", err);
     } finally {
       setIsPublishing(false);
     }
@@ -286,15 +287,17 @@ const App: React.FC = () => {
                 ) : filteredPosts.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6 pb-20">
                     {filteredPosts.map((post, idx) => {
-                      if (filteredPosts.length === idx + 1) {
-                        return (
-                          <div key={post.id} ref={lastPostElementRef}>
+                      const isLast = filteredPosts.length === idx + 1;
+                      const showAd = idx === 2; // عرض الإعلان الأفقي بعد ثالث منشور
+                      
+                      return (
+                        <React.Fragment key={post.id}>
+                          <div ref={isLast ? lastPostElementRef : null}>
                             <PostCard post={post} currentUser={currentUser} onUpdate={loadInitialData} onSelect={handleSelectPost} />
                           </div>
-                        );
-                      } else {
-                        return <PostCard key={post.id} post={post} currentUser={currentUser} onUpdate={loadInitialData} onSelect={handleSelectPost} />;
-                      }
+                          {showAd && <AdBanner type="horizontal" />}
+                        </React.Fragment>
+                      );
                     })}
                     
                     {isFetchingMore && (
@@ -322,6 +325,9 @@ const App: React.FC = () => {
 
             <aside className="hidden md:block md:col-span-4 lg:col-span-3 space-y-8">
               <div className="sticky top-32 space-y-8">
+                {/* الإعلان الجانبي */}
+                <AdBanner type="sidebar" />
+
                 <div className="bg-white border border-slate-100 rounded-[2.5rem] p-7 shadow-sm text-right">
                   <h3 className="text-[11px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center justify-end gap-2">
                     لوحة المتفوقين 🏆
@@ -413,7 +419,7 @@ const App: React.FC = () => {
                 className="w-full bg-blue-600 text-white font-black py-5 rounded-[1.5rem] text-base shadow-2xl shadow-blue-100 disabled:opacity-50 disabled:shadow-none hover:bg-blue-700 transition-all active:scale-95 mt-4"
               >
                 {isPublishing ? 'جاري النشر...' : 'انشر دلوقتي 🚀'}
-              </button>
+              </button> 
             </div>
           </div>
         </div>

@@ -21,6 +21,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
   const [localLikes, setLocalLikes] = useState<string[]>(post.likes || []);
   const isLiked = localLikes.includes(currentUser.id);
   const isReported = post.reports?.includes(currentUser.id) || false;
+  const isAdmin = currentUser.role === 'admin';
 
   useEffect(() => {
     setLocalLikes(post.likes || []);
@@ -29,14 +30,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isBusy) return;
-
-    const newLikes = isLiked 
-      ? localLikes.filter(id => id !== currentUser.id) 
-      : [...localLikes, currentUser.id];
-    
+    const newLikes = isLiked ? localLikes.filter(id => id !== currentUser.id) : [...localLikes, currentUser.id];
     setLocalLikes(newLikes);
     setIsBusy(true);
-
     try {
       await postService.toggleLike(post.id, currentUser.id);
     } catch (err) {
@@ -44,6 +40,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleReport = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('هل أنت متأكد من التبليغ عن هذا المحتوى؟')) {
+      await postService.reportPost(post.id, currentUser.id);
+      onUpdate();
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('يا أدمن، متأكد إنك عايز تحذف البوست ده نهائياً؟')) {
+      await postService.deletePost(post.id);
+      onUpdate();
+    }
+  };
+
+  const handleTogglePin = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await postService.togglePin(post.id, !!post.isPinned);
+    onUpdate();
   };
 
   const handleAIExplain = async (e: React.MouseEvent) => {
@@ -76,14 +94,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
   return (
     <div 
       onClick={() => onSelect?.(post.id)}
-      className={`group relative bg-white rounded-3xl border border-slate-200/60 overflow-hidden mb-5 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:-translate-y-1 cursor-pointer ${post.isPinned ? 'ring-2 ring-blue-500/20 bg-blue-50/30' : ''}`}
+      className={`group relative bg-white rounded-3xl border border-slate-200/60 overflow-hidden mb-5 transition-all duration-300 hover:shadow-xl ${post.isPinned ? 'ring-2 ring-blue-500 bg-blue-50/20' : ''}`}
     >
-      {post.isPinned && (
-        <div className="absolute top-4 left-4 z-10 bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg shadow-blue-200">
-          📌 مثبت
-        </div>
-      )}
-
       <div className="p-5">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
@@ -100,15 +112,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSele
             </div>
           </div>
           
-          <button 
-            onClick={(e) => { e.stopPropagation(); if(confirm('تبليغ عن محتوى غير لائق؟')) postService.reportPost(post.id, currentUser.id).then(onUpdate); }}
-            className={`p-2 rounded-xl transition-colors ${isReported ? 'text-orange-500 bg-orange-50' : 'text-slate-300 hover:bg-slate-50'}`}
-          >
-            🚩
-          </button>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <>
+                <button onClick={handleTogglePin} title={post.isPinned ? "إلغاء التثبيت" : "تثبيت"} className={`p-2 rounded-xl transition-all ${post.isPinned ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}>
+                  📌
+                </button>
+                <button onClick={handleDelete} title="حذف المنشور" className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-all">
+                  🗑️
+                </button>
+              </>
+            )}
+            <button 
+              onClick={handleReport}
+              className={`p-2 rounded-xl transition-colors ${isReported ? 'text-orange-500 bg-orange-50' : 'text-slate-300 hover:bg-slate-50 hover:text-orange-500'}`}
+              title="تبليغ"
+            >
+              🚩
+            </button>
+          </div>
         </div>
 
-        <h3 className="text-base font-black text-slate-800 mb-2 leading-tight group-hover:text-blue-600 transition-colors">{post.title}</h3>
+        <h3 className="text-base font-black text-slate-800 mb-2 leading-tight group-hover:text-blue-600 transition-colors">
+          {post.isPinned && <span className="ml-2 text-blue-600">📌</span>}
+          {post.title}
+        </h3>
         <p className="text-slate-500 text-sm mb-4 leading-relaxed line-clamp-2 font-medium">
           {post.content}
         </p>

@@ -1,6 +1,5 @@
 
 import { Post, User } from '../types';
-import { MOCK_POSTS } from '../constants';
 
 const DB_KEYS = {
   POSTS: 'ana_taleb_posts_v2',
@@ -11,17 +10,7 @@ const DB_KEYS = {
 export const db = {
   getPosts: (): Post[] => {
     const data = localStorage.getItem(DB_KEYS.POSTS);
-    if (!data) {
-      // Initialize with reports field if missing
-      const initialPosts = MOCK_POSTS.map(p => ({
-        ...p,
-        reports: [],
-        likes: [],
-        comments: []
-      }));
-      localStorage.setItem(DB_KEYS.POSTS, JSON.stringify(initialPosts));
-      return initialPosts as any;
-    }
+    if (!data) return [];
     return JSON.parse(data);
   },
   
@@ -42,7 +31,6 @@ export const db = {
     const data = localStorage.getItem(DB_KEYS.CURRENT_USER);
     if (!data) return null;
     const session = JSON.parse(data);
-    // Always refresh user data from the main users list to ensure profile updates are reflected
     const users = db.getUsers();
     return users.find(u => u.id === session.id) || session;
   },

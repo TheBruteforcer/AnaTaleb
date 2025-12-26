@@ -55,21 +55,20 @@ export const postService = {
         });
       }
     } catch (err) {
-      console.warn("Server fetch failed, using local only");
+      console.warn("Server fetch failed");
     }
 
-    // دمج المنشورات المحلية (Fallback) مع السيرفر لضمان رؤية المنشور الجديد فوراً
+    // جلب المنشورات المحلية المضافة حديثاً فقط (Optimistic)
     const localPosts = db.getPosts();
-    
-    // فلترة المنشورات المتكررة (لو موجودة في الاتنين)
     const combined = [...serverPosts];
+    
     localPosts.forEach(lp => {
-      if (!combined.find(sp => sp.id === lp.id || (sp.title === lp.title && sp.authorId === lp.authorId))) {
+      const existsOnServer = combined.find(sp => sp.id === lp.id || (sp.title === lp.title && sp.authorId === lp.authorId));
+      if (!existsOnServer) {
         combined.push(lp);
       }
     });
 
-    // إعادة الترتيب: المثبت أولاً، ثم الأحدث زمنياً
     return combined.sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
@@ -82,23 +81,12 @@ export const postService = {
       try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        
-        const { error } = await supabase.storage
-          .from('attachments')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
+        const { error } = await supabase.storage.from('attachments').upload(fileName, file);
         if (error) return null;
-
         const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(fileName);
         return publicUrl;
-      } catch (e) {
-        return null;
-      }
+      } catch (e) { return null; }
     });
-
     const results = await Promise.all(uploadPromises);
     return results.filter((url): url is string => url !== null);
   },
@@ -106,53 +94,27 @@ export const postService = {
   create: async (title: string, content: string, subject: Subject, author: {name: string, id: string}, imageUrls: string[] = []): Promise<boolean> => {
     const newPostLocal: Post = {
       id: `local-${Math.random().toString(36).substr(2, 9)}`,
-      title,
-      content,
-      subject,
-      author: author.name,
-      authorId: author.id,
-      imageUrls,
-      likes: [],
-      reports: [],
-      comments: [],
-      timestamp: Date.now()
+      title, content, subject, author: author.name, authorId: author.id,
+      imageUrls, likes: [], reports: [], comments: [], timestamp: Date.now()
     };
 
-    // حفظ محلي فوراً (Optimistic UI)
     const existingPosts = db.getPosts();
     db.savePosts([newPostLocal, ...existingPosts]);
 
     try {
       const { error } = await supabase.from('posts').insert([{
-        title, 
-        content, 
-        subject, 
-        author_name: author.name, 
-        author_id: author.id, 
-        image_urls: imageUrls,
-        image_url: imageUrls[0] || null
+        title, content, subject, author_name: author.name, author_id: author.id, 
+        image_urls: imageUrls, image_url: imageUrls[0] || null
       }]);
-      
-      if (!error) {
-        supabase.rpc('increment_points', { user_id: author.id, amount: 5 }).catch(() => {});
-      }
-      
-      // بنرجع true دائماً لأننا حفظناه محلياً خلاص والريفريش هيظهره
+      if (!error) supabase.rpc('increment_points', { user_id: author.id, amount: 5 }).catch(() => {});
       return true;
-    } catch (err) {
-      return true;
-    }
+    } catch (err) { return true; }
   },
 
   toggleLike: async (postId: string, userId: string) => {
-    try {
-      const { data: existing } = await supabase.from('likes').select('*').eq('post_id', postId).eq('user_id', userId).maybeSingle();
-      if (existing) {
-        await supabase.from('likes').delete().eq('id', existing.id);
-      } else {
-        await supabase.from('likes').insert([{ post_id: postId, user_id: userId }]);
-      }
-    } catch (e) {}
+    const { data: existing } = await supabase.from('likes').select('*').eq('post_id', postId).eq('user_id', userId).maybeSingle();
+    if (existing) await supabase.from('likes').delete().eq('id', existing.id);
+    else await supabase.from('likes').insert([{ post_id: postId, user_id: userId }]);
   },
 
   togglePin: async (postId: string, isPinned: boolean) => {
@@ -183,9 +145,7 @@ export const postService = {
   },
 
   getTopStudents: async () => {
-    try {
-      const { data } = await supabase.from('profiles').select('name, points, avatar').order('points', { ascending: false }).limit(5);
-      return data || [];
-    } catch (e) { return []; }
+    const { data } = await supabase.from('profiles').select('name, points, avatar').order('points', { ascending: false }).limit(5);
+    return data || [];
   }
 };

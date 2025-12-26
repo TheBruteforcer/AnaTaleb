@@ -16,31 +16,5 @@ export const SUBJECTS_WITH_ICONS = [
 
 export const SUBJECTS = SUBJECTS_WITH_ICONS.map(s => s.name);
 
-export const MOCK_POSTS = [
-  {
-    id: '1',
-    author: 'أحمد علي',
-    authorId: 'mock-1',
-    title: 'ملخص قوانين الفيزياء - الباب الأول',
-    content: 'يا شباب دي تجميعة لكل القوانين اللي ممكن تحتاجوها في الباب الأول، بالتوفيق يا وحوش!',
-    subject: 'فيزياء',
-    likes: [],
-    reports: [],
-    comments: [],
-    timestamp: Date.now() - 3600000,
-    imageUrls: ['https://picsum.photos/seed/physics/800/400']
-  },
-  {
-    id: '2',
-    author: 'سارة محمد',
-    authorId: 'mock-2',
-    title: 'ازاي تذاكر الكيمياء العضوية صح؟',
-    content: 'الكيمياء العضوية مش صعبة، الفكرة كلها في الربط بين المعادلات.. ركزوا في المخطط ده.',
-    subject: 'كيمياء',
-    likes: [],
-    reports: [],
-    comments: [],
-    timestamp: Date.now() - 7200000,
-    imageUrls: []
-  }
-];
+// تم حذف المنشورات التجريبية لضمان عرض بيانات السيرفر الحقيقية فقط
+export const MOCK_POSTS = [];
