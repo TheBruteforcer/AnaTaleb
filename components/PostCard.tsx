@@ -9,9 +9,10 @@ interface PostCardProps {
   post: Post;
   currentUser: User;
   onUpdate: () => void;
+  onSelect?: (postId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate, onSelect }) => {
   const [showComments, setShowComments] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
@@ -20,7 +21,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
   const isLiked = post.likes?.includes(currentUser.id) || false;
   const isReported = post.reports?.includes(currentUser.id) || false;
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isBusy) return;
     setIsBusy(true);
     try {
@@ -31,7 +33,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
     }
   };
 
-  const handleAIExplain = async () => {
+  const handleAIExplain = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (aiExplanation) {
       setAiExplanation(null);
       return;
@@ -45,7 +48,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
     }
   };
 
-  const handlePin = async () => {
+  const handlePin = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isBusy) return;
     setIsBusy(true);
     try {
@@ -56,7 +60,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
     }
   };
 
-  const handleReport = async () => {
+  const handleReport = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isBusy) return;
     const msg = isReported ? 'إلغاء البلاغ؟' : 'تبليغ عن الملخص؟ (5 بلاغات ويحذف تلقائياً)';
     if (confirm(msg)) {
@@ -71,7 +76,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isBusy) return;
     if (confirm('تأكيد حذف المنشور نهائياً؟')) {
       setIsBusy(true);
@@ -86,8 +92,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
     }
   };
 
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelect) onSelect(post.id);
+  };
+
   return (
-    <div className={`rounded-2xl border overflow-hidden mb-4 hover:shadow-xl transition-all duration-300 text-right group ${post.isPinned ? 'bg-blue-50/50 border-blue-200 ring-1 ring-blue-100' : 'bg-white border-slate-100 shadow-sm'}`}>
+    <div 
+      onClick={() => onSelect?.(post.id)}
+      className={`rounded-2xl border overflow-hidden mb-4 hover:shadow-xl transition-all duration-300 text-right group cursor-pointer ${post.isPinned ? 'bg-blue-50/50 border-blue-200 ring-1 ring-blue-100' : 'bg-white border-slate-100 shadow-sm'}`}
+    >
       <div className="p-4">
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-1">
@@ -119,7 +133,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
         </div>
 
         <h3 className="text-sm font-black text-slate-800 mb-2 leading-tight">{post.title}</h3>
-        <p className="text-slate-500 text-xs mb-3 leading-relaxed font-medium">
+        <p className="text-slate-500 text-xs mb-3 leading-relaxed font-medium line-clamp-3">
           {post.content}
         </p>
 
@@ -135,9 +149,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
 
         {post.imageUrls && post.imageUrls.length > 0 && (
           <div className={`grid gap-2 mb-4 ${post.imageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {post.imageUrls.map((url, idx) => (
-              <div key={idx} className="rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-inner group-hover:shadow-md transition-shadow aspect-video">
-                <img src={url} className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" alt="attachment" onClick={() => window.open(url, '_blank')} />
+            {post.imageUrls.slice(0, 4).map((url, idx) => (
+              <div key={idx} className="relative rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-inner group-hover:shadow-md transition-shadow aspect-video">
+                <img src={url} className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" alt="attachment" onClick={handleImageClick} />
+                {idx === 3 && post.imageUrls!.length > 4 && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-black text-sm pointer-events-none">
+                    +{post.imageUrls!.length - 4} صور أخرى
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -155,7 +174,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
               {isExplaining ? <span className="animate-spin text-xs">🌀</span> : <span>🤖</span>}
               <span className="hidden sm:inline">{aiExplanation ? 'إخفاء الشرح' : 'اشرح لي'}</span>
             </button>
-            <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-[10px] font-black transition-colors ${showComments ? 'text-blue-600' : 'text-slate-300 hover:text-blue-400'}`}>
+            <button onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} className={`flex items-center gap-1.5 text-[10px] font-black transition-colors ${showComments ? 'text-blue-600' : 'text-slate-300 hover:text-blue-400'}`}>
               <span>{post.comments?.length || 0}</span>
               <span className="text-sm">💬</span>
             </button>
@@ -167,7 +186,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onUpdate }) => {
         </div>
 
         {showComments && (
-          <div className="mt-4 pt-4 border-t border-slate-50 animate-in slide-in-from-top-4 duration-300">
+          <div className="mt-4 pt-4 border-t border-slate-50 animate-in slide-in-from-top-4 duration-300" onClick={(e) => e.stopPropagation()}>
             <CommentSection comments={post.comments || []} onAddComment={async (txt) => { await postService.addComment(post.id, txt, {name: currentUser.name, id: currentUser.id}); onUpdate(); }} currentUser={currentUser} />
           </div>
         )}
