@@ -11,13 +11,15 @@ export const generateQuiz = async (grade: Grade, description: string, questionCo
       model: 'gemini-3-flash-preview',
       contents: `قم بإنشاء كويز تعليمي مكون من ${questionCount} أسئلة للمنهج المصري للمرحلة: ${grade}. 
       المحتوى المطلوب: ${description}.
-      لغة الكويز والأسئلة يجب أن تكون: ${language === 'ar' ? 'العربية (للمدارس العام)' : 'الإنجليزية (للمدارس اللغات/Language Schools)'}.`,
+      اللغة: ${language === 'ar' ? 'العربية' : 'الإنجليزية'}.`,
       config: {
-        systemInstruction: `أنت معلم مصري خبير تضع امتحانات للطلاب. 
-        يجب أن تكون الأسئلة احترافية وتناسب المرحلة العمرية واللغة المختارة.
-        استخدم LaTeX لكتابة أي معادلات رياضية أو رموز كيميائية دائماً وبين علامات دولار (مثال: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ أو $H_2O$).
-        في حالة اللغة العربية، اكتب التفسير بالعامية المصرية. في حالة اللغة الإنجليزية، اكتب التفسير بلغة إنجليزية مبسطة وودودة.
-        يجب أن يكون الرد بصيغة JSON حصراً.`,
+        systemInstruction: `أنت معلم خبير. 
+        قواعد هامة جداً:
+        1. يجب أن يكون correctAnswerIndex مطابقاً تماماً للاختيار الصحيح.
+        2. التفسير (explanation) يجب أن يشرح الإجابة الصحيحة المحددة فقط.
+        3. استخدم LaTeX دائماً للمعادلات الكيميائية والرياضية بين علامات $ (مثال: $H_2O$).
+        4. لا تكرر الأسئلة.
+        5. الرد يجب أن يكون JSON فقط.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -28,10 +30,10 @@ export const generateQuiz = async (grade: Grade, description: string, questionCo
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  text: { type: Type.STRING, description: "نص السؤال مع LaTeX إذا لزم" },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "4 اختيارات" },
+                  text: { type: Type.STRING },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "4 options" },
                   correctAnswerIndex: { type: Type.INTEGER },
-                  explanation: { type: Type.STRING, description: "تفسير بسيط للإجابة" }
+                  explanation: { type: Type.STRING }
                 },
                 required: ["text", "options", "correctAnswerIndex", "explanation"]
               }
@@ -44,7 +46,6 @@ export const generateQuiz = async (grade: Grade, description: string, questionCo
 
     return JSON.parse(response.text);
   } catch (error) {
-    console.error("Gemini Quiz Error:", error);
     throw error;
   }
 };
@@ -53,12 +54,9 @@ export const generateQuizFromContent = async (title: string, content: string) =>
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `حول هذا الملخص الدراسي إلى كويز اختباري سريع مكون من 5 أسئلة.\nالعنوان: ${title}\nالمحتوى: ${content}`,
+      contents: `حول هذا الملخص إلى كويز 5 أسئلة:\nالعنوان: ${title}\nالمحتوى: ${content}`,
       config: {
-        systemInstruction: `أنت مساعد تعليمي ذكي. هدفك هو اختبار فهم الطالب للمحتوى المقدم له. 
-        تأكد أن الأسئلة مستوحاة مباشرة من المعلومات الموجودة في الملخص.
-        استخدم LaTeX للمعادلات.
-        يجب أن يكون الرد بصيغة JSON.`,
+        systemInstruction: "أنت مساعد تعليمي. حول النص لكويز JSON مع استخدام LaTeX للمعادلات. تأكد من دقة correctAnswerIndex.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -100,7 +98,6 @@ export const getStudyBuddyAdvice = async (userMessage: string) => {
     });
 
     let text = response.text || STRINGS.gemini.defaultResponse;
-    
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks && chunks.length > 0) {
       text += `\n\n${STRINGS.gemini.sourcesLabel}`;
@@ -112,10 +109,8 @@ export const getStudyBuddyAdvice = async (userMessage: string) => {
         }
       });
     }
-
     return text;
   } catch (error) {
-    console.error("Gemini Error:", error);
     return STRINGS.gemini.error;
   }
 };

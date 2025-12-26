@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 
 interface LatexRendererProps {
   text: string;
@@ -7,42 +7,43 @@ interface LatexRendererProps {
 }
 
 const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // دالة لمعالجة النص وتحويل ما بين علامات $ إلى HTML الخاص بـ KaTeX بشكل آمن
+  const renderedContent = useMemo(() => {
+    if (!text) return "";
+    
+    // نستخدم مكتبة KaTeX المتوفرة عالمياً عبر CDN
+    const katex = (window as any).katex;
+    if (!katex) return text;
 
-  useEffect(() => {
-    if (containerRef.current && (window as any).renderMathInElement) {
-      (window as any).renderMathInElement(containerRef.current, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false },
-        ],
-        throwOnError: false,
-      });
-    }
+    // تقسيم النص للبحث عن علامات $
+    // سنقوم بمعالجة بسيطة للأسطر والمحتوى الرياضي
+    const parts = text.split(/(\$.*?\$)/g);
+    
+    return parts.map(part => {
+      if (part.startsWith('$') && part.endsWith('$')) {
+        const formula = part.slice(1, -1);
+        try {
+          return katex.renderToString(formula, {
+            throwOnError: false,
+            displayMode: false
+          });
+        } catch (e) {
+          return part;
+        }
+      }
+      return part;
+    }).join('');
   }, [text]);
 
   return (
     <div 
-      ref={containerRef} 
       className={`latex-container ${className}`}
       style={{ 
-        // حماية المعادلات من تأثير اتجاه الصفحة العام
         unicodeBidi: 'embed',
+        textAlign: 'inherit'
       }}
-    >
-      {text}
-      <style>{`
-        .latex-container .katex {
-          direction: ltr !important;
-          display: inline-block;
-          unicode-bidi: isolate;
-        }
-        .latex-container .katex-display {
-          direction: ltr !important;
-          margin: 1em 0;
-        }
-      `}</style>
-    </div>
+      dangerouslySetInnerHTML={{ __html: renderedContent }}
+    />
   );
 };
 

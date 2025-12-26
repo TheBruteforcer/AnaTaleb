@@ -50,6 +50,8 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
     setView('playing');
     setCurrentQuestionIndex(0);
     setScore(0);
+    setIsAnswered(false);
+    setSelectedOption(null);
   };
 
   const loadQuizzes = async () => {
@@ -63,6 +65,10 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
     if (quiz) {
       setActiveQuiz(quiz);
       setView('playing');
+      setCurrentQuestionIndex(0);
+      setScore(0);
+      setIsAnswered(false);
+      setSelectedOption(null);
     } else {
       setView('list');
     }
@@ -75,10 +81,10 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
       const { id, timestamp, ...quizData } = activeQuiz;
       const newId = await quizService.save(quizData);
       setActiveQuiz({ ...activeQuiz, id: newId });
-      alert("تم حفظ الكويز في بنك الأسئلة بنجاح! ✅");
+      alert("تم حفظ الكويز بنجاح! ✅");
       loadQuizzes();
     } catch (e) {
-      alert("حصل مشكلة وأحنا بنحفظ الكويز.");
+      alert("فشل الحفظ.");
     } finally {
       setIsSaving(false);
     }
@@ -103,9 +109,11 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
       setView('playing');
       setCurrentQuestionIndex(0);
       setScore(0);
+      setIsAnswered(false);
+      setSelectedOption(null);
       loadQuizzes();
     } catch (err) {
-      alert("فشل توليد الكويز، جرب توصف الدرس بطريقة تانية.");
+      alert("فشل توليد الكويز.");
       setView('create');
     }
   };
@@ -130,19 +138,6 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
     }
   };
 
-  const shareQuiz = () => {
-    if (!activeQuiz) return;
-    if (activeQuiz.id.startsWith('temp')) {
-      if(confirm("لازم تحفظ الكويز الأول عشان تقدر تشاركه، أحفظه؟")) {
-        handleSaveTempQuiz();
-      }
-      return;
-    }
-    const url = `${window.location.origin}${window.location.pathname}?quizId=${activeQuiz.id}`;
-    navigator.clipboard.writeText(url);
-    alert(STRINGS.quiz.copySuccess);
-  };
-
   if (view === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -157,25 +152,22 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
     const progress = ((currentQuestionIndex + 1) / activeQuiz.questions.length) * 100;
 
     return (
-      <div className="max-w-2xl mx-auto animate-in fade-in zoom-in-95 duration-500">
+      <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-[2.5rem] shadow-2xl border border-blue-50 overflow-hidden">
           <div className="h-2 bg-slate-100 w-full">
             <div className="h-full bg-blue-600 transition-all duration-500" style={{ width: `${progress}%` }}></div>
           </div>
           
-          <div className="p-8 md:p-12 text-right">
+          <div className="p-8 md:p-12 text-right" key={currentQuestionIndex}>
             <div className="flex justify-between items-center mb-8">
               <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full uppercase tracking-widest">
                 السؤال {currentQuestionIndex + 1} من {activeQuiz.questions.length}
               </span>
-              <div className="flex gap-2">
-                {activeQuiz.id.startsWith('temp') && (
-                  <button onClick={handleSaveTempQuiz} disabled={isSaving} className="text-[10px] font-black text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded-lg transition-colors">
-                    {isSaving ? "جاري الحفظ..." : "💾 حفظ الكويز"}
-                  </button>
-                )}
-                <button onClick={shareQuiz} className="text-xs font-black text-slate-400 hover:text-blue-600">🔗 {STRINGS.quiz.shareQuiz}</button>
-              </div>
+              <button onClick={() => {
+                const url = `${window.location.origin}${window.location.pathname}?quizId=${activeQuiz.id}`;
+                navigator.clipboard.writeText(url);
+                alert(STRINGS.quiz.copySuccess);
+              }} className="text-xs font-black text-slate-400">🔗 مشاركة</button>
             </div>
 
             <LatexRenderer text={q.text} className="text-xl md:text-2xl font-black text-slate-800 mb-10 leading-relaxed" />
@@ -191,7 +183,7 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
 
                 return (
                   <button 
-                    key={idx}
+                    key={`${currentQuestionIndex}-${idx}`}
                     disabled={isAnswered}
                     onClick={() => handleAnswer(idx)}
                     className={`p-5 rounded-2xl border-2 text-right font-bold transition-all transform active:scale-[0.98] ${styles}`}
@@ -229,17 +221,12 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
     return (
       <div className="max-w-md mx-auto text-center animate-in zoom-in duration-500">
         <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100">
-          <div className="text-7xl mb-6">
-            {percentage >= 80 ? '👑' : percentage >= 50 ? '🥈' : '📚'}
-          </div>
+          <div className="text-7xl mb-6">{percentage >= 50 ? '🎉' : '📚'}</div>
           <h2 className="text-3xl font-black text-slate-800 mb-2">{STRINGS.quiz.scoreTitle}</h2>
           <div className="text-6xl font-black text-blue-600 mb-8">{score} / {activeQuiz.questions.length}</div>
-          <p className="text-slate-500 font-bold mb-10">
-            {percentage >= 80 ? 'عاش يا دحيح! مستواك عبقري' : 'كويس جداً، كمل مذاكرة وهتبقى برنس!'}
-          </p>
           <div className="flex flex-col gap-4">
-            <button onClick={() => setView('create')} className="bg-blue-600 text-white font-black py-4 rounded-2xl">اعمل كويز جديد</button>
-            <button onClick={() => setView('list')} className="bg-slate-50 text-slate-600 font-black py-4 rounded-2xl">كل الكويزات</button>
+            <button onClick={() => setView('create')} className="bg-blue-600 text-white font-black py-4 rounded-2xl">كويز جديد</button>
+            <button onClick={() => setView('list')} className="bg-slate-50 text-slate-600 font-black py-4 rounded-2xl">الرجوع</button>
           </div>
         </div>
       </div>
@@ -262,88 +249,44 @@ const QuizSystem: React.FC<QuizSystemProps> = ({ currentUser, initialQuizId, dir
         <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-blue-50 mb-12 animate-in slide-in-from-top-4">
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="lg:col-span-1">
-                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.gradeLabel}</label>
-                <select 
-                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value as Grade)}
-                >
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase">{STRINGS.quiz.gradeLabel}</label>
+                <select className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold" value={grade} onChange={(e) => setGrade(e.target.value as Grade)}>
                   {STRINGS.quiz.allGrades.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-
               <div className="lg:col-span-1">
-                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.countLabel}</label>
-                <input 
-                  type="number"
-                  min="3"
-                  max="20"
-                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-                />
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase">{STRINGS.quiz.countLabel}</label>
+                <input type="number" min="3" max="20" className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold" value={questionCount} onChange={(e) => setQuestionCount(parseInt(e.target.value))} />
               </div>
-
               <div className="lg:col-span-1">
-                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.langLabel}</label>
-                <select 
-                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as 'ar' | 'en')}
-                >
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase">{STRINGS.quiz.langLabel}</label>
+                <select className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold" value={language} onChange={(e) => setLanguage(e.target.value as 'ar' | 'en')}>
                   <option value="ar">{STRINGS.quiz.langArabic}</option>
                   <option value="en">{STRINGS.quiz.langEnglish}</option>
                 </select>
               </div>
-
               <div className="lg:col-span-1">
-                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">{STRINGS.quiz.descLabel}</label>
-                <input 
-                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all text-right"
-                  placeholder={STRINGS.quiz.descPlaceholder}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
+                <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase">{STRINGS.quiz.descLabel}</label>
+                <input className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold" placeholder={STRINGS.quiz.descPlaceholder} value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
            </div>
-           <button 
-             onClick={handleGenerate}
-             disabled={!description.trim()}
-             className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-black py-6 rounded-3xl text-xl shadow-2xl shadow-blue-200 disabled:opacity-50"
-           >
+           <button onClick={handleGenerate} disabled={!description.trim()} className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-black py-6 rounded-3xl text-xl shadow-2xl">
              {STRINGS.quiz.generateBtn}
            </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quizzes.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-400 font-bold">مفيش كويزات لسه.. كن أول واحد ينشر كويز! ✍️</div>
-        ) : (
-          quizzes.map(q => (
-            <div key={q.id} className="bg-white rounded-3xl p-6 border border-slate-100 hover:shadow-xl transition-all group">
-               <div className="flex justify-between items-start mb-4">
-                  <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-lg">{q.grade}</span>
-                  <span className="text-[9px] font-black text-slate-300">{new Date(q.timestamp).toLocaleDateString('ar-EG')}</span>
-               </div>
-               <h3 className="text-lg font-black text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">{q.title}</h3>
-               <p className="text-slate-400 text-xs font-bold line-clamp-2 mb-6">{q.description}</p>
-               <div className="flex gap-2">
-                  <button onClick={() => loadSpecificQuiz(q.id)} className="flex-1 bg-blue-600 text-white font-black py-3 rounded-xl text-xs">{STRINGS.quiz.startQuiz}</button>
-                  <button 
-                    onClick={() => {
-                      const url = `${window.location.origin}${window.location.pathname}?quizId=${q.id}`;
-                      navigator.clipboard.writeText(url);
-                      alert(STRINGS.quiz.copySuccess);
-                    }}
-                    className="bg-slate-50 text-slate-400 p-3 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
-                  >
-                    🔗
-                  </button>
-               </div>
-            </div>
-          ))
-        )}
+        {quizzes.map(q => (
+          <div key={q.id} className="bg-white rounded-3xl p-6 border border-slate-100 hover:shadow-xl transition-all group">
+             <div className="flex justify-between items-start mb-4">
+                <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-lg">{q.grade}</span>
+                <span className="text-[9px] font-black text-slate-300">{new Date(q.timestamp).toLocaleDateString('ar-EG')}</span>
+             </div>
+             <h3 className="text-lg font-black text-slate-800 mb-2">{q.title}</h3>
+             <button onClick={() => loadSpecificQuiz(q.id)} className="w-full bg-blue-600 text-white font-black py-3 rounded-xl text-xs">{STRINGS.quiz.startQuiz}</button>
+          </div>
+        ))}
       </div>
     </div>
   );
